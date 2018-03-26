@@ -1,4 +1,4 @@
-package scheduler;
+package sterreborneserver;
 
 import java.util.ArrayList;
 import javax.swing.JFrame;

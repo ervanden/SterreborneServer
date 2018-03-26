@@ -1,4 +1,4 @@
-package scheduler;
+package sterreborneserver;
 
 public class ServerEngineThread extends Thread {
 

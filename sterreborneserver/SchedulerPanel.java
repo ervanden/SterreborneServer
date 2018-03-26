@@ -1,4 +1,4 @@
-package scheduler;
+package sterreborneserver;
 
 import java.awt.Color;
 import java.awt.Component;

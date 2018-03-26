@@ -1,4 +1,4 @@
-package scheduler;
+package sterreborneserver;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,7 +9,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Calendar;
 import javax.swing.table.DefaultTableModel;
-import static scheduler.SchedulerPanel.clientMessage;
+import static sterreborneserver.SchedulerPanel.clientMessage;
 
 
 public class MatrixTableModel extends DefaultTableModel {
