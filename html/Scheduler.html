@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sterreborne scheduler</title>
+</head>
+<body>
+  <style>
+  p,span,form {font-family:Arial, sans-serif;font-size:14px;}
+  span.userinfo { font-style: italic; color: black; }
+  span.redstatus {font-weight: 900;color: rgb(255,0,0); background-color: white}
+  span.bluestatus {font-weight: 900;color: rgb(0,0,255);}
+
+  button.redbutton {font-weight: 900;color: rgb(255,0,0); background-color: white; border:none}
+  button.bluebutton {font-weight: 900;color: rgb(0,0,255); background-color: white; border:none}
+  button.unknownbutton {font-weight: 900;color: lightgrey; background-color: white; border:none}
+
+  div.fixed {
+    position: fixed;
+    top: 0;
+    left: 20px;
+  }
+  </style>
+
+
+<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+<style type="text/css">
+.legend  {border-collapse:collapse;border-spacing:0;}
+.legend   td{font-family:Arial, sans-serif;font-size:14px;padding:5px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.legend   .white{vertical-align:top; border-style:none; padding-right:30px}
+.legend   .blue{background-color:#33fcff;vertical-align:top;     width:30px}
+.legend   .darkblue{background-color:#0004ff;vertical-align:top; width:30px}
+.legend   .red{background-color:#ffccc9;vertical-align:top;      width:30px}
+.legend   .darkred{background-color:#ff0000;vertical-align:top;  width:30px}
+</style>
+
+<div class="fixed">
+   <br>
+<table>
+<tr>
+<td>
+   <form id="targetform">
+     <select name="target" id="targetselect" onchange="change_target()" >
+       <option value="heating">Heating</option>
+       <option value="boiler">Boiler</option>
+     </select>
+   </form>
+</td>
+<td>
+   <form id="statusform">
+   <button type="button" id="statusbutton" class="unknownbutton">STATUS ?</button>
+   <span id="statusinfo" class="userinfo"></span>
+   </form>
+</td>
+</tr>
+</table>
+<br>
+
+   <table class="legend" id="legend">
+   <tbody>
+   <tr> 
+   <td class="white" style="padding-left:0px;padding-right:30px">SELECT A COLOR :  </td>
+   <td class="red"       onmousedown='setActiveColor("red")'>  </td> 
+   <td class="white"     onmousedown='setActiveColor("red")'> ON, every week </td> 
+   <td class="blue"      onmousedown='setActiveColor("blue")'>  </td> 
+   <td class="white"     onmousedown='setActiveColor("blue")'> OFF, every week </td> 
+   <td class="darkred"   onmousedown='setActiveColor("darkred")'>  </td> 
+   <td class="white"     onmousedown='setActiveColor("darkred")'> ON, once </td> 
+   <td class="darkblue"  onmousedown='setActiveColor("darkblue")'>  </td> 
+   <td class="white"     onmousedown='setActiveColor("darkblue")'> OFF, once </td> 
+   </tr>
+   </tbody>
+   </table>
+   <br>
+
+   <form>
+   <button type="button" id="commitbutton" >COMMIT</button>
+   <span id="commitinfo" class="userinfo"> ( no changes since schedule loaded )</span>
+   </form>
+   <br>
+   <br>
+</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<span id="logoutput">
+</span>
+<span id="table">
+</span>
+<br>
+
+
+<script> // check status
+
+function setStatusColor(color){
+document.getElementById("statusbutton").className=color;
+}
+
+$("#statusbutton").click(
+function(event){
+             $("#statusbutton").html("STATUS : waiting for response"); 
+             setStatusColor("unknownbutton");
+             $.post("SchedulerStatus.php",
+                    { port : g_port },
+                    function(data,status){ 
+                        $("#statusbutton").html("STATUS : "+data); 
+                        if (data.indexOf("ON")>=0)  setStatusColor("redbutton");
+                        if (data.indexOf("OFF")>=0)  setStatusColor("bluebutton");
+                    }
+             );
+});
+
+function change_target(){
+ console.log($("#targetselect").val());
+ if ($("#targetselect").val() == "heating") { g_port=6789; };
+ if ($("#targetselect").val() == "boiler") { g_port=6790; };
+ load_schedule();
+ console.log("server port = "+g_port);
+};
+
+$("#targetform").submit(
+function(event){
+ console.log($("#targetselect").val());
+ if ($("#targetselect").val() == "heating") { g_port=6789; };
+ if ($("#targetselect").val() == "boiler") { g_port=6790; };
+ load_schedule();
+ console.log("server port = "+g_port);
+ event.preventDefault();
+});
+
+</script>
+
+
+<script> 
+
+$(document).keydown(        //    intercept <ESC>
+function keydown(event) {
+ if (event.which == 27) {
+ g_firstCell=null;
+ restoreColors();
+ }
+});
+
+function doDown(element) {  // called when schedule cell is clicked
+if (g_firstCell==null) { // first corner was clicked
+  g_firstCell=element;
+
+//console.log("first cell = "+element.innerHTML);
+//console.log("saving current cell colors.);
+
+  var x;
+  var y;
+  for (y = 0; y < 7;  y++) {
+      for (x = 0; x < 24*4; x++) {
+          g_colors[x][y]=g_cells[x][y].className;
+      }
+  }
+
+} else {  // second corner cell was clicked
+
+  //console.log("second cell = "+element.innerHTML);
+  //convert first and second corner to x,y coordinates
+  
+  var xy=g_firstCell.id;
+  var axy=xy.split(":");
+  var x1=Number(axy[0]);
+  var y1=Number(axy[1]);
+  var xy=element.id;
+  var axy=xy.split(":");
+  var x2=Number(axy[0]);
+  var y2=Number(axy[1]);
+  var xmin=Math.min(x1,x2);
+  var xmax=Math.max(x1,x2);
+  var ymin=Math.min(y1,y2);
+  var ymax=Math.max(y1,y2);
+
+  //console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
+
+  // set all cells in this area to the selected color
+
+  var x;
+  var y;
+  for (y = 0; y < 7;  y++) {
+      for (x = 0; x < 24*4; x++) {
+          if ((x>=xmin) && (x<=xmax) && (y>=ymin) && (y<=ymax)) {
+             g_cells[x][y].className=g_activeColor;
+          }
+      }
+  }
+
+  // compare to the initial colors and count the number of cells that changed
+
+  var changedcells=0;
+  for (y = 0; y < 7;  y++) {
+      for (x = 0; x < 24*4; x++) {
+          if (g_cells[x][y].className != g_initialcolors[x][y]){changedcells++};
+      }
+  }
+  $("#commitinfo").text(" ( "+changedcells+" cells changed )");
+
+g_firstCell=null;
+}
+};
+
+function doEnter(element) {  // called when mouse moves into a schedule cell
+if (g_firstCell!=null) { // hovering into a cell after first corner was clicked
+
+  restoreColors();
+
+  // find coordinates of the area
+
+  var xy=g_firstCell.id;
+  var axy=xy.split(":");
+  var x1=Number(axy[0]);
+  var y1=Number(axy[1]);
+  var xy=element.id;
+  var axy=xy.split(":");
+  var x2=Number(axy[0]);
+  var y2=Number(axy[1]);
+  var xmin=Math.min(x1,x2);
+  var xmax=Math.max(x1,x2);
+  var ymin=Math.min(y1,y2);
+  var ymax=Math.max(y1,y2);
+  
+  //console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
+
+  // set all cells in the area to the selected color
+
+  var x;
+  var y;
+  for (y = 0; y < 7;  y++) {
+      for (x = 0; x < 24*4; x++) {
+          if ((x>=xmin) && (x<=xmax) && (y>=ymin) && (y<=ymax)) {
+             g_cells[x][y].className=g_activeColor;
+          }
+      }
+  }
+  
+
+}
+};
+
+function restoreColors(){
+  //console.log("restoring table colors");
+
+  var x;
+  var y;
+  for (y = 0; y < 7;  y++) {
+      for (x = 0; x < 24*4; x++) {
+          g_cells[x][y].className=g_colors[x][y];
+      }
+  }
+
+};
+
+function setActiveColor(colorName) {
+g_activeColor=colorName;
+};
+
+$(document).ready( 
+ function() {
+  g_port=6789;
+  load_schedule();
+ }
+);
+
+
+function load_schedule(){
+
+// initialize
+
+        g_firstCell=null;       // first corner of the area the user wants to change
+        g_activeColor="red";    // color selected in the legend
+
+        g_cells = new Array(96);    // stores a pointer to all the td in the schedule
+        for (var i = 0; i < 24*4; i++) {
+         g_cells[i] = new Array(7);
+        }
+
+        g_colors = new Array(96);    // stores the colors until the second point of the area is clicked
+        for (var i = 0; i < 24*4; i++) {
+         g_colors[i] = new Array(7);
+        }
+
+        g_initialcolors = new Array(96); // stores the colors on table load to know how many cells have changed
+        for (var i = 0; i < 24*4; i++) {
+         g_initialcolors[i] = new Array(7);
+        }
+
+//update the status
+
+        $("#statusbutton").trigger("click");
+
+// load the schedule from the server
+
+       $("#table").html("<br><br><br><br><br>Loading the schedule...<br><br><br><br><br><br>");
+
+        $.post("SchedulerTable.php",
+        { port : g_port },
+        function(data,status){
+          $("#table").html(data);
+          create_g_cells();
+        });
+
+};
+
+function create_g_cells(){
+  // create a 2D array with the table cells.
+  // This to avoid navigating the DOM each time to perform an action on all the cells
+
+  var table=document.getElementById("schedule");
+  var tablebody = table.getElementsByTagName('TBODY')[0];
+  var tablerows=tablebody.getElementsByTagName('TR');
+  var y;
+  for (y = 0; y < tablerows.length; y++) {
+      var rowentries=tablerows[y].getElementsByTagName('TD');
+      var x;
+      for (x = 0; x < (rowentries.length-1); x++) {
+          var td=rowentries[x+1];
+          g_cells[x][y]=td;
+          g_initialcolors[x][y]=td.className;
+      }
+  }
+};
+
+
+$("#commitbutton").click(
+function(){
+
+  var postdata = { port: g_port };
+  var table=document.getElementById("schedule");
+  var tablebody = table.getElementsByTagName('TBODY')[0];
+  var tablerows=tablebody.getElementsByTagName('TR');
+  var i;
+  for (i = 0; i < tablerows.length; i++) {
+      var rowentries=tablerows[i].getElementsByTagName('TD');
+      var rowhead=rowentries[0];
+      var day=rowhead.innerHTML;
+      var e;
+      for (e = 1; e < rowentries.length; e++) {
+          var td=rowentries[e];
+          postdata[day+':'+td.innerHTML]=td.className;
+      }
+  }
+
+//  for( key in postdata ) {
+//     console.log( "key is " + [ key ] + ", value is " + postdata[ key ] );
+//  }
+
+ $.post("SchedulerCommit.php",
+      postdata,
+      function(data,status){
+          $("#logoutput").html(data);
+      });
+
+ create_g_cells();  // just to reset g_initialcolors
+
+ setTimeout(        // post is async. simulate some delay
+   function commitEffect() {
+      $("#statusbutton").trigger("click");
+      $("#commitinfo").text("no changes since last commit");
+   },
+   3000);
+
+}
+);
+</script>
+
+
+</body>
+</html>
+

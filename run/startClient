@@ -1,0 +1,5 @@
+#! /bin/bash
+
+
+ java -cp /home/pi/git/Scheduler:/home/pi/git/Scheduler/lib/'*':/home/pi/git/RGPIO/lib/'*' scheduler/Scheduler client $*
+

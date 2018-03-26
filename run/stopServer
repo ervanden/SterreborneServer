@@ -1,0 +1,6 @@
+#! /bin/bash
+
+sudo pkill -f Scheduler
+
+#sudo because runs as root when started from rc.local
+
