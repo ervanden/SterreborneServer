@@ -52,7 +52,7 @@ public class ServerEngine {
         this.output = output;
 
         scheduleFileName = "/home/pi/Scheduler/Schedule"+portNumber+".txt";
-        if (!Scheduler.server_controlActive) {
+        if (!SterreborneServer.server_controlActive) {
             scheduleFileName = "C:\\Users\\erikv\\Documents\\Schedule"+portNumber+".txt";
         }
 

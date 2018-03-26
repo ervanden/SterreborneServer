@@ -28,7 +28,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
 
     public boolean switchOn(String output) {
 
-        if (Scheduler.server_controlActive) {
+        if (SterreborneServer.server_controlActive) {
             System.out.println("RGPIO Interface switch " + output + " On");
 
             if (output.equals("heating")) {
@@ -43,7 +43,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
 
     public boolean switchOff(String output) {
 
-        if (Scheduler.server_controlActive) {
+        if (SterreborneServer.server_controlActive) {
             System.out.println("RGPIO Interface switch " + output + " Off");
 
             if (output.equals("heating")) {
@@ -63,14 +63,14 @@ class RGPIOInterface implements VInputListener, MessageListener {
     
  static public boolean switchOn(int n) {
 
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  System.out.println("Pi4J Pin " + n + " On");
  }
  return true;
  }
 
  static public boolean switchOff(int n) {
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  System.out.println("Pi4J Pin " + n + " Off");
  }
  return false;
@@ -168,7 +168,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
  static public boolean switchOn(int n) {
  SchedulerPanel.serverMessage(0, 2, "switchOn(" + n + ")");
  GpioPinDigitalOutput pin = initializedOutputPins[n];
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  SchedulerPanel.serverMessage(0, 2, "Pi4J Pin " + n + " On");
  pin.high();
  }
@@ -178,7 +178,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
  static public boolean switchOff(int n) {
  SchedulerPanel.serverMessage(0, 2, "switchOff(" + n + ")");
  GpioPinDigitalOutput pin = initializedOutputPins[n];
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  SchedulerPanel.serverMessage(0, 2, "Pi4J Pin " + n + " Off");
  pin.low();
  }
@@ -191,7 +191,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
 
  static public boolean initOutputPin(int n) {
  GpioPinDigitalOutput op = null;
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  op = gpio.provisionDigitalOutputPin(intToPin(n), "LED", PinState.LOW);
  initializedOutputPins[n] = op;
  }
@@ -201,7 +201,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
  static public GpioPinDigitalInput initInputPin(int n) {
  // return the GpioPin so that a listener can be added to it
  GpioPinDigitalInput ip = null;
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  ip = gpio.provisionDigitalInputPin(intToPin(n), PinPullResistance.PULL_DOWN);
  ip.setShutdownOptions(true);
  initializedInputPins[n] = ip;
@@ -210,7 +210,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
  }
 
  public static void initialize() {
- if (Scheduler.server_controlActive) {
+ if (SterreborneServer.server_controlActive) {
  gpio = GpioFactory.getInstance();
  }
  }

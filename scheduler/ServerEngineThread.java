@@ -48,9 +48,9 @@ public class ServerEngineThread extends Thread {
     private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
         if (serverEngine.STATE != newState) {
             if (newState) {
-                serverEngine.STATE = Scheduler.rgpioInterface.switchOn(serverEngine.output);
+                serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
             } else {
-                serverEngine.STATE = Scheduler.rgpioInterface.switchOff(serverEngine.output);
+                serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
             }
             if (showMessage) {
                 msg(1, printState(tnow) + "  <-----------");

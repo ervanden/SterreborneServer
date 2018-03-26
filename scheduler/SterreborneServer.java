@@ -3,7 +3,7 @@ package scheduler;
 import java.util.ArrayList;
 import javax.swing.JFrame;
 
-public class Scheduler {
+public class SterreborneServer {
 
     static int server_verbosity;
     static boolean server_controlActive;

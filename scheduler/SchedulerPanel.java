@@ -132,7 +132,7 @@ public class SchedulerPanel extends JPanel implements ActionListener, ListSelect
     }
 
     static public void clientMessage(int verbosity, String msg) {
-        if (verbosity <= Scheduler.client_verbosity) {
+        if (verbosity <= SterreborneServer.client_verbosity) {
             Document doc = msgPane.getDocument();
             try {
                 doc.insertString(doc.getLength(), msg + "\n", null);
@@ -145,7 +145,7 @@ public class SchedulerPanel extends JPanel implements ActionListener, ListSelect
     static public void serverMessage(
            int serverIdentifier, 
             int verbosity, String msg) {
-        if (verbosity <= Scheduler.server_verbosity) {
+        if (verbosity <= SterreborneServer.server_verbosity) {
             TimeValue tnow= new TimeValue();
             System.out.println(tnow.dateName() + "  ["+serverIdentifier + "] "+msg);
         }
