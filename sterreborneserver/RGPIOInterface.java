@@ -9,6 +9,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
     VDigitalOutput boiler;
     VAnalogInput[] tmp;
     VAnalogInput[] hum;
+    VAnalogOutput[] tmpOffset;
 
     final static int nrSensors = 3;
 
@@ -31,10 +32,12 @@ class RGPIOInterface implements VInputListener, MessageListener {
 
         tmp = new VAnalogInput[nrSensors];
         hum = new VAnalogInput[nrSensors];
-
+        tmpOffset = new VAnalogOutput[nrSensors];
+        
         for (int i = 0; i < nrSensors; i++) {
             tmp[i] = RGPIO.VAnalogInput("T" + (i + 1));
             hum[i] = RGPIO.VAnalogInput("H" + (i + 1));
+          tmpOffset[i] = RGPIO.VAnalogOutput("OffsetT" + (i + 1));
         }
 
         RGPIO.createRRD(5);
@@ -85,7 +88,11 @@ class RGPIOInterface implements VInputListener, MessageListener {
             while (true) {
                 try {
                     Thread.sleep(step * 1000);
-
+                    
+                    for (int i = 0; i < nrSensors; i++) {
+                        tmpOffset[i].set("100");
+                    }
+                    
                     for (int i = 0; i < nrSensors; i++) {
                         tmp[i].get();
                         hum[i].get();
