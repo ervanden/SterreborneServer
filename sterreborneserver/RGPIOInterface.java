@@ -89,9 +89,9 @@ class RGPIOInterface implements VInputListener, MessageListener {
                 try {
                     Thread.sleep(step * 1000);                     
                     
-                    tmpOffset[0].set("-80"); // T1
-                    tmpOffset[1].set("-80"); // T2
-                    tmpOffset[2].set("-80"); // T3
+                    tmpOffset[0].set("-81"); // T1
+                    tmpOffset[1].set("-90"); // T2
+                    tmpOffset[2].set("-84"); // T3
 
                     for (int i = 0; i < nrSensors; i++) {
                         tmp[i].get();
