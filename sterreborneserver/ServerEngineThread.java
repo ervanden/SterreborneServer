@@ -8,7 +8,7 @@ public class ServerEngineThread extends Thread {
 
     public ServerEngineThread(ServerEngine serverEngine) {
         super("ServerEngineThread");
-        this.serverEngine=serverEngine;
+        this.serverEngine = serverEngine;
     }
 
     public void run() {
@@ -20,10 +20,10 @@ public class ServerEngineThread extends Thread {
         }
     }
 
-     private void msg(int verbosity, String message){
-                SchedulerPanel.serverMessage(serverEngine.portNumber,verbosity,message);
+    private void msg(int verbosity, String message) {
+        SchedulerPanel.serverMessage(serverEngine.portNumber, verbosity, message);
     }
-     
+
     public void restart() {
         msg(1, "serverEngineThread is asked to restart");
         stop = true;
@@ -45,20 +45,35 @@ public class ServerEngineThread extends Thread {
         }
     }
 
+    /* switch on/off only if the state is different from the previous one
+     Then no SET is sent until schedule says ON (because serverEngine state initialized as OFF
+
+     private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
+     if (serverEngine.STATE != newState) {
+     if (newState) {
+     serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
+     } else {
+     serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
+     }
+     if (showMessage) {
+     msg(1, printState(tnow) + "  <-----------");
+     }
+     } else {
+     if (showMessage) {
+     msg(1, printState(tnow));
+     }
+     }
+     }
+     */
+    
     private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
-        if (serverEngine.STATE != newState) {
-            if (newState) {
-                serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
-            } else {
-                serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
-            }
-            if (showMessage) {
-                msg(1, printState(tnow) + "  <-----------");
-            }
+        if (newState) {
+            serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
         } else {
-            if (showMessage) {
-                msg(1, printState(tnow));
-            }
+            serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
+        }
+        if (showMessage) {
+            msg(1, printState(tnow) + "  <-----------");
         }
     }
 
@@ -167,7 +182,7 @@ public class ServerEngineThread extends Thread {
                     stoppableSleep(5 * 60);
                 }
                 tnow.add(TimeValue.SECOND, 5 * 60);
-                firstIteration=false;
+                firstIteration = false;
 
             }
         }
