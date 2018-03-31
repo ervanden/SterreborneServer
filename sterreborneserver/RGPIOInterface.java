@@ -17,8 +17,9 @@ class RGPIOInterface implements VInputListener, MessageListener {
     }
 
     public void onMessage(MessageEvent e) throws Exception {
+        if (e.type!=MessageType.UpdateRRDB){
         System.out.println(e.toString());
-
+        }
     }
 
     public void initialize() {
