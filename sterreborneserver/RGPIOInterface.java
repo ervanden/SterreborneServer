@@ -43,7 +43,7 @@ class RGPIOInterface implements VInputListener, MessageListener {
 
         RGPIO.createRRD(5);
 
-        new ReadSensorThread(5).start();
+        new ReadSensorThread(15).start();
     }
 
     public boolean switchOn(String output) {
