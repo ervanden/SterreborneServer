@@ -97,10 +97,10 @@ class RGPIOInterface implements VInputListener, MessageListener {
             while (true) {
                 try {
 
-                    sensor1.send("HAHA 1");
-                    sensor2.send("HAHA 2");
-                    sensor3.send("HAHA 3");
-
+                    sensor1.send("ReadSensorThread");
+                    sensor2.send("ReadSensorThread");
+                    sensor3.send("ReadSensorThread");
+                    
                     Thread.sleep(step * 1000);
 
                     tmpOffset[0].set("-81"); // T1
