@@ -11,14 +11,18 @@ class RGPIOInterface implements VInputListener, MessageListener {
     VAnalogInput[] hum;
     VAnalogOutput[] tmpOffset;
 
+    VDevice sensor1;
+    VDevice sensor2;
+    VDevice sensor3;
+
     final static int nrSensors = 3;
 
     public void onInputEvent(VInput vinput) {
     }
 
     public void onMessage(MessageEvent e) throws Exception {
-        if (e.type!=MessageType.UpdateRRDB){
-        System.out.println(e.toString());
+        if (e.type != MessageType.UpdateRRDB) {
+            System.out.println(e.toString());
         }
     }
 
@@ -30,6 +34,10 @@ class RGPIOInterface implements VInputListener, MessageListener {
         heating = RGPIO.VDigitalOutput("heating");
         boiler = RGPIO.VDigitalOutput("boiler");
         button.addVinputListener(this);
+
+        sensor1 = RGPIO.VDevice("DHT22-1");
+        sensor2 = RGPIO.VDevice("DHT22-2");
+        sensor3 = RGPIO.VDevice("DHT22-3");
 
         tmp = new VAnalogInput[nrSensors];
         hum = new VAnalogInput[nrSensors];
@@ -88,8 +96,13 @@ class RGPIOInterface implements VInputListener, MessageListener {
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(step * 1000);                     
-                    
+
+                    sensor1.send("HAHA 1");
+                    sensor2.send("HAHA 2");
+                    sensor3.send("HAHA 3");
+
+                    Thread.sleep(step * 1000);
+
                     tmpOffset[0].set("-81"); // T1
                     tmpOffset[1].set("-90"); // T2
                     tmpOffset[2].set("-84"); // T3
