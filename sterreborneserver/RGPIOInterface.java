@@ -43,6 +43,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
         sensor1 = RGPIO.VDevice("DHT22-1");
         sensor2 = RGPIO.VDevice("DHT22-2");
         sensor3 = RGPIO.VDevice("DHT22-3");
+        sensor1.addVDeviceListener(this);
 
         tmp = new VAnalogInput[nrSensors];
         hum = new VAnalogInput[nrSensors];
