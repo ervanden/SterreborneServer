@@ -56,7 +56,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
 
         RGPIO.createRRD(5);
 
-        new ReadSensorThread(15).start();
+        new ReadSensorThread(10).start();
     }
 
     public boolean switchOn(String output) {
@@ -102,12 +102,12 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
             while (true) {
                 try {
 
-                    sensor1.send("ReadSensorThread");
-                    sensor2.send("ReadSensorThread");
-                    sensor3.send("ReadSensorThread");
-                    
-                    Thread.sleep(step * 1000);
+                    sensor1.send("PING");
+ //                   sensor2.send("ReadSensorThread");
+ //                   sensor3.send("ReadSensorThread");
 
+                     Thread.sleep(step * 1000);
+/*
                     tmpOffset[0].set("-81"); // T1
                     tmpOffset[1].set("-90"); // T2
                     tmpOffset[2].set("-84"); // T3
@@ -116,7 +116,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
                         tmp[i].get();
                         hum[i].get();
                     }
-
+*/
                 } catch (InterruptedException ie) {
                 }
             }
