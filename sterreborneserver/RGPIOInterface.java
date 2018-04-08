@@ -2,7 +2,7 @@ package sterreborneserver;
 
 import rgpio.*;
 
-class RGPIOInterface implements VInputListener, MessageListener {
+class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener {
 
     VDigitalInput button;
     VDigitalOutput heating;
@@ -18,6 +18,11 @@ class RGPIOInterface implements VInputListener, MessageListener {
     final static int nrSensors = 3;
 
     public void onInputEvent(VInput vinput) {
+             System.out.println("VInput "+vinput.name+" sent event ");
+    }
+    
+    public void onDeviceMessage(VDevice vdevice, String message){
+     System.out.println("VDevice "+vdevice.name+" sent message \""+message+"\"");
     }
 
     public void onMessage(MessageEvent e) throws Exception {
