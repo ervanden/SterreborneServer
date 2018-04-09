@@ -44,7 +44,9 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
         sensor2 = RGPIO.VDevice("DHT22-2");
         sensor3 = RGPIO.VDevice("DHT22-3");
         sensor1.addVDeviceListener(this);
-
+        sensor2.addVDeviceListener(this);
+        sensor3.addVDeviceListener(this); 
+        
         tmp = new VAnalogInput[nrSensors];
         hum = new VAnalogInput[nrSensors];
         tmpOffset = new VAnalogOutput[nrSensors];
@@ -105,7 +107,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
 
                     sensor1.send("PING1");
                     sensor2.send("PING2");
- //                   sensor3.send("ReadSensorThread");
+                    sensor3.send("PING3");
 
                      Thread.sleep(step * 1000);
 /*
