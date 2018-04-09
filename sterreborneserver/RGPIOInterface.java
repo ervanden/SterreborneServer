@@ -103,8 +103,8 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
             while (true) {
                 try {
 
-                    sensor1.send("PING");
- //                   sensor2.send("ReadSensorThread");
+                    sensor1.send("PING1");
+                    sensor2.send("PING2");
  //                   sensor3.send("ReadSensorThread");
 
                      Thread.sleep(step * 1000);
