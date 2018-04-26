@@ -110,7 +110,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
                     sensor3.sendMessage("PING3");
 
                      Thread.sleep(step * 1000);
-/*
+
                     tmpOffset[0].set("-81"); // T1
                     tmpOffset[1].set("-90"); // T2
                     tmpOffset[2].set("-84"); // T3
@@ -119,7 +119,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
                         tmp[i].get();
                         hum[i].get();
                     }
-*/
+
                 } catch (InterruptedException ie) {
                 }
             }
