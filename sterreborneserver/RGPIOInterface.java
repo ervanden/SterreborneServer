@@ -7,6 +7,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
     VDigitalInput button;
     VDigitalOutput heating;
     VDigitalOutput boiler;
+
     VAnalogInput[] tmp;
     VAnalogInput[] hum;
     VAnalogOutput[] tmpOffset;
@@ -39,7 +40,7 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
         heating = RGPIO.VDigitalOutput("heating");
         boiler = RGPIO.VDigitalOutput("boiler");
         button.addVinputListener(this);
-
+/*
         sensor1 = RGPIO.VDevice("DHT22-1");
         sensor2 = RGPIO.VDevice("DHT22-2");
         sensor3 = RGPIO.VDevice("DHT22-3");
@@ -56,10 +57,10 @@ class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener
             hum[i] = RGPIO.VAnalogInput("H" + (i + 1));
             tmpOffset[i] = RGPIO.VAnalogOutput("OffsetT" + (i + 1));
         }
-
+*/
         RGPIO.createRRD(5);
 
-        new ReadSensorThread(10).start();
+//        new ReadSensorThread(10).start();
     }
 
     public boolean switchOn(String output) {
