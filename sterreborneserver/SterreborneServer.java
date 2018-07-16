@@ -10,7 +10,7 @@ public class SterreborneServer {
     static int server_port;
 
     static PiClient piClient;
-    public static RGPIOInterfaceNEW rgpioInterface;
+    public static RGPIOInterface rgpioInterface;
     static String client_target_host;
     static int client_target_port;
     static String client_command;
@@ -48,7 +48,7 @@ public class SterreborneServer {
             System.out.println("controlActive=" + server_controlActive);
             System.out.println();
 
-            rgpioInterface = new RGPIOInterfaceNEW();
+            rgpioInterface = new RGPIOInterface();
             rgpioInterface.initialize();
             new ServerEngine(6789, "heating").start();
             new ServerEngine(6790, "boiler").start();
