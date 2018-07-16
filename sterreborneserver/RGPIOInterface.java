@@ -1,129 +1,123 @@
 package sterreborneserver;
 
-import rgpio.*;
 
-class RGPIOInterface implements VInputListener, VDeviceListener, MessageListener {
+ import com.pi4j.io.gpio.*;
 
-    VDigitalInput button;
-    VDigitalOutput heating;
-    VDigitalOutput boiler;
+ public class RGPIOInterface {
 
-    VAnalogInput[] tmp;
-    VAnalogInput[] hum;
-    VAnalogOutput[] tmpOffset;
+ static GpioController gpio;
 
-    VDevice sensor1;
-    VDevice sensor2;
-    VDevice sensor3;
+ static GpioPinDigitalOutput[] initializedOutputPins = new GpioPinDigitalOutput[20];
+ static GpioPinDigitalInput[] initializedInputPins = new GpioPinDigitalInput[20];
 
-    final static int nrSensors = 3;
+ {
+ for (int i = 0; i < 20; i++) {
+ initializedOutputPins[i] = null;
+ initializedInputPins[i] = null;
+ }
+ }
 
-    public void onInputEvent(VInput vinput) {
-             System.out.println("VInput "+vinput.name+" sent event ");
-    }
-    
-    public void onDeviceMessage(VDevice vdevice, String message){
-     System.out.println("VDevice "+vdevice.name+" sent message \""+message+"\"");
-    }
+ static Pin intToPin(int i) {
+ Pin pin = null;
+ switch (i) {
+ case 0:
+ return RaspiPin.GPIO_00;
+ case 1:
+ return RaspiPin.GPIO_01;
+ case 2:
+ return RaspiPin.GPIO_02;
+ case 3:
+ return RaspiPin.GPIO_03;
+ case 4:
+ return RaspiPin.GPIO_04;
+ case 5:
+ return RaspiPin.GPIO_05;
+ case 6:
+ return RaspiPin.GPIO_06;
+ case 7:
+ return RaspiPin.GPIO_07;
+ case 8:
+ return RaspiPin.GPIO_08;
+ case 9:
+ return RaspiPin.GPIO_09;
+ case 10:
+ return RaspiPin.GPIO_10;
+ case 11:
+ return RaspiPin.GPIO_11;
+ case 12:
+ return RaspiPin.GPIO_12;
+ case 13:
+ return RaspiPin.GPIO_13;
+ case 14:
+ return RaspiPin.GPIO_14;
+ case 15:
+ return RaspiPin.GPIO_15;
+ case 16:
+ return RaspiPin.GPIO_16;
+ case 17:
+ return RaspiPin.GPIO_17;
+ case 18:
+ return RaspiPin.GPIO_18;
+ case 19:
+ return RaspiPin.GPIO_19;
+ case 20:
+ return RaspiPin.GPIO_20;
+ default:
+ System.out.println("non existing raspi pin " + i);
 
-    public void onMessage(MessageEvent e) throws Exception {
-        if (e.type != MessageType.UpdateRRDB) {
-            System.out.println(e.toString());
-        }
-    }
+ }
+ return pin;
+ }
 
-    public void initialize() {
+ static public boolean switchOn(int n) {
+ System.out.println("switchOn(" + n + ")");
+ GpioPinDigitalOutput pin = initializedOutputPins[n];
+ if (SterreborneServer.server_controlActive) {
+ System.out.println("Pi4J Pin " + n + " On");
+ pin.high();
+ }
+ return true;
+ }
 
-        RGPIO.addMessageListener(this);
-        RGPIO.initialize();
-        button = RGPIO.VDigitalInput("button");
-        heating = RGPIO.VDigitalOutput("heating");
-        boiler = RGPIO.VDigitalOutput("boiler");
-        button.addVinputListener(this);
-/*
-        sensor1 = RGPIO.VDevice("DHT22-1");
-        sensor2 = RGPIO.VDevice("DHT22-2");
-        sensor3 = RGPIO.VDevice("DHT22-3");
-        sensor1.addVDeviceListener(this);
-        sensor2.addVDeviceListener(this);
-        sensor3.addVDeviceListener(this); 
-        
-        tmp = new VAnalogInput[nrSensors];
-        hum = new VAnalogInput[nrSensors];
-        tmpOffset = new VAnalogOutput[nrSensors];
+ static public boolean switchOff(int n) {
+ System.out.println("switchOff(" + n + ")");
+ GpioPinDigitalOutput pin = initializedOutputPins[n];
+ if (SterreborneServer.server_controlActive) {
+ System.out.println("Pi4J Pin " + n + " Off");
+ pin.low();
+ }
+ return false;
+ }
 
-        for (int i = 0; i < nrSensors; i++) {
-            tmp[i] = RGPIO.VAnalogInput("T" + (i + 1));
-            hum[i] = RGPIO.VAnalogInput("H" + (i + 1));
-            tmpOffset[i] = RGPIO.VAnalogOutput("OffsetT" + (i + 1));
-        }
-*/
-        RGPIO.createRRD(5);
+ static public boolean readPin() {
+ return false;
+ }
 
-//        new ReadSensorThread(10).start();
-    }
+ static public boolean initOutputPin(int n) {
+ GpioPinDigitalOutput op = null;
+ if (SterreborneServer.server_controlActive) {
+ op = gpio.provisionDigitalOutputPin(intToPin(n), "LED", PinState.LOW);
+ initializedOutputPins[n] = op;
+ }
+ return true;
+ }
 
-    public boolean switchOn(String output) {
+ static public GpioPinDigitalInput initInputPin(int n) {
+ // return the GpioPin so that a listener can be added to it
+ GpioPinDigitalInput ip = null;
+ if (SterreborneServer.server_controlActive) {
+ ip = gpio.provisionDigitalInputPin(intToPin(n), PinPullResistance.PULL_DOWN);
+ ip.setShutdownOptions(true);
+ initializedInputPins[n] = ip;
+ }
+ return ip;
+ }
 
-        if (SterreborneServer.server_controlActive) {
-            System.out.println("RGPIO Interface switch " + output + " On");
+ public static void initialize() {
+ if (SterreborneServer.server_controlActive) {
+ gpio = GpioFactory.getInstance();
+ }
+ }
+ }
 
-            if (output.equals("heating")) {
-                heating.set("High");
-            }
-            if (output.equals("boiler")) {
-                boiler.set("High");
-            }
-        }
-        return true;
-    }
 
-    public boolean switchOff(String output) {
-
-        if (SterreborneServer.server_controlActive) {
-            System.out.println("RGPIO Interface switch " + output + " Off");
-
-            if (output.equals("heating")) {
-                heating.set("Low");
-            }
-            if (output.equals("boiler")) {
-                boiler.set("Low");
-            }
-        }
-        return false;
-    }
-
-    class ReadSensorThread extends Thread {
-
-        int step;
-
-        public ReadSensorThread(int step) {
-            super();
-            this.step = step;
-        }
-
-        public void run() {
-            while (true) {
-                try {
-
-                    sensor1.sendMessage("PING1");
-                    sensor2.sendMessage("PING2");
-                    sensor3.sendMessage("PING3");
-
-                     Thread.sleep(step * 1000);
-
-                    tmpOffset[0].set("-81"); // T1
-                    tmpOffset[1].set("-90"); // T2
-                    tmpOffset[2].set("-84"); // T3
-
-                    for (int i = 0; i < nrSensors; i++) {
-                        tmp[i].get();
-                        hum[i].get();
-                    }
-
-                } catch (InterruptedException ie) {
-                }
-            }
-        }
-    }
-}
