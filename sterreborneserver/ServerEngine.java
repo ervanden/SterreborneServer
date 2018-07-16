@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class ServerEngine {
 
     public int portNumber;
-    public String output;
+    public int output;
     
     public boolean STATE = false;
     public boolean expired = false;
@@ -47,9 +47,10 @@ public class ServerEngine {
         }
     }
 
-    public ServerEngine(int portNumber, String output) {
+    public ServerEngine(int portNumber, int output) {
         this.portNumber = portNumber;
         this.output = output;
+        SterreborneServer.rgpioInterface.initOutputPin(output);
 
         scheduleFileName = "/home/pi/Scheduler/Schedule"+portNumber+".txt";
         if (!SterreborneServer.server_controlActive) {

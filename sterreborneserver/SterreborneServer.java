@@ -50,8 +50,8 @@ public class SterreborneServer {
 
             rgpioInterface = new RGPIOInterface();
             rgpioInterface.initialize();
-            new ServerEngine(6789, "heating").start();
-            new ServerEngine(6790, "boiler").start();
+            new ServerEngine(6789, 5).start();
+            new ServerEngine(6790, 6).start();
 //            new PiButton(2);
             
         } else if (args[0].equals("client")) {
