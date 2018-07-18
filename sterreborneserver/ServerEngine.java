@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-public class ServerEngine {
+public class ServerEngine implements WSServerListener {
 
     public int portNumber;
     public int output;
@@ -54,7 +54,7 @@ public class ServerEngine {
 
         scheduleFileName = "/home/pi/Scheduler/Schedule"+portNumber+".txt";
         if (!SterreborneServer.server_controlActive) {
-            scheduleFileName = "C:\\Users\\erikv\\Documents\\Schedule"+portNumber+".txt";
+            scheduleFileName = "C:\\Users\\erikv\\Documents\\Scheduler\\Schedule"+portNumber+".txt";
         }
 
         this.STATE = false;  // sure ??
@@ -73,8 +73,25 @@ public class ServerEngine {
 
     public void start() {
         new PiServer(this).start();
+        WSServer webSocketServer;
+        webSocketServer = new WSServer(7777);
+        webSocketServer.addListener(this);
+        webSocketServer.start();
         serverEngineThread.start();
     }
+
+
+// WSServer calls onClientRequest when receiving a request
+
+        public ArrayList<String> onClientRequest(String clientID, String request) {
+            ArrayList<String> reply = new ArrayList<>();
+
+            System.out.println("calling onClientRequest cmd=" + request);
+            reply.add("reply to "+request);
+            return reply;
+        }
+
+
 
     public ArrayList<String> restart() {
         msg(1, "serverEngine is asked to restart");

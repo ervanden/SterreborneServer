@@ -101,10 +101,10 @@ public class RGPIOInterface {
         return true;
     }
 
-    static public GpioPinDigitalInput initInputPin(int n) {
-        // return the GpioPin so that a listener can be added to it
-        GpioPinDigitalInput ip = null;
-        if (SterreborneServer.server_controlActive) {
+        static public GpioPinDigitalInput initInputPin(int n) {
+            // return the GpioPin so that a listener can be added to it
+            GpioPinDigitalInput ip = null;
+            if (SterreborneServer.server_controlActive) {
             ip = gpio.provisionDigitalInputPin(intToPin(n), PinPullResistance.PULL_DOWN);
             ip.setShutdownOptions(true);
             initializedInputPins[n] = ip;
