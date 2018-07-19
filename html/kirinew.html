@@ -1,10 +1,12 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <title>Sterreborne scheduler</title>
 </head>
-<body>
+
+<body onload="wsconnect();"> 
   <style>
   p,span,form {font-family:Arial, sans-serif;font-size:14px;}
   span.userinfo { font-style: italic; color: black; }
@@ -22,6 +24,17 @@
   }
   </style>
 
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg .white{vertical-align:top}
+.tg .blue{background-color:#33fcff;vertical-align:top}
+.tg .darkblue{background-color:#0004ff;vertical-align:top}
+.tg .red{background-color:#ffccc9;vertical-align:top}
+.tg .darkred{background-color:#ff0000;vertical-align:top}
+</style>
+
+
 
 <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
 
@@ -35,8 +48,22 @@
 .legend   .darkred{background-color:#ff0000;vertical-align:top;  width:30px}
 </style>
 
+        <style type="text/css">
+            * {font-family:Arial, sans-serif;font-size:12px}
+            input.white {background-color:white}
+            input.green {background-color:green}
+            input.grey {background-color:grey}
+            input.red {background-color:red}
+        </style>
+
+
+
 <div class="fixed">
    <br>
+        <form>
+            <input type="text" id="serverAddress" name="serverAddress" class="white" value="ws://X.X.X.X:2603">
+        </form>
+        <br>
 <table>
 <tr>
 <td>
@@ -102,6 +129,7 @@
 
 <script> // check status
 
+
 function setStatusColor(color){
 document.getElementById("statusbutton").className=color;
 }
@@ -150,6 +178,7 @@ function keydown(event) {
  restoreColors();
  }
 });
+
 
 function doDown(element) {  // called when schedule cell is clicked
 if (g_firstCell==null) { // first corner was clicked
@@ -271,6 +300,14 @@ $(document).ready(
  function() {
   g_port=6789;
   load_schedule();
+  constructTable();
+var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+var k;
+for (k = 0; k < days.length; k++) {
+ console.log("col for day "+days[k]+" is "+ g_day_to_column[days[k]]);
+}
+
+  create_g_cells();
  }
 );
 
@@ -297,6 +334,8 @@ function load_schedule(){
          g_initialcolors[i] = new Array(7);
         }
 
+        g_day_to_column = {};
+
 //update the status
 
         $("#statusbutton").trigger("click");
@@ -304,14 +343,14 @@ function load_schedule(){
 // load the schedule from the server
 
        $("#table").html("<br><br><br><br><br>Loading the schedule...<br><br><br><br><br><br>");
-
-        $.post("SchedulerTable.php",
+/*
+        $.post("SchedulerTable1.php",
         { port : g_port },
         function(data,status){
           $("#table").html(data);
           create_g_cells();
         });
-
+*/
 };
 
 function create_g_cells(){
@@ -337,7 +376,6 @@ function create_g_cells(){
 $("#commitbutton").click(
 function(){
 
-  var postdata = { port: g_port };
   var table=document.getElementById("schedule");
   var tablebody = table.getElementsByTagName('TBODY')[0];
   var tablerows=tablebody.getElementsByTagName('TR');
@@ -349,23 +387,16 @@ function(){
       var e;
       for (e = 1; e < rowentries.length; e++) {
           var td=rowentries[e];
-          postdata[day+':'+td.innerHTML]=td.className;
+          g_ws.send("NS:"+day+':'+td.innerHTML+":"+td.className);
       }
   }
-
-//  for( key in postdata ) {
-//     console.log( "key is " + [ key ] + ", value is " + postdata[ key ] );
-//  }
-
- $.post("SchedulerCommit.php",
-      postdata,
-      function(data,status){
-          $("#logoutput").html(data);
-      });
+  g_ws.send("NS:APPLY");
+  g_ws.send("NS:O:O");
+  g_ws.send("NS");
 
  create_g_cells();  // just to reset g_initialcolors
 
- setTimeout(        // post is async. simulate some delay
+ setTimeout(        // allow the server some time to process the new schedule
    function commitEffect() {
       $("#statusbutton").trigger("click");
       $("#commitinfo").text("no changes since last commit");
@@ -374,9 +405,112 @@ function(){
 
 }
 );
+
+
+function constructTable(){
+
+var d = new Date();
+var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+var k; 
+for (k = 0; k < days.length; k++) {
+ console.log("today+"+k+" is "+ days[(d.getDay()+k)%7]);
+}
+
+    var table = document.createElement('table');
+    table.id="schedule";
+    table.className="tg";
+    var tablebody = document.createElement('tbody');
+    table.appendChild(tablebody);
+    var i;
+    for (i = 0; i < days.length; i++) {
+        var colDay=days[(d.getDay()+i)%7];
+        g_day_to_column[colDay]=i;
+
+        var tr = document.createElement('tr');   
+        tr.id=colDay;
+    
+        var td1 = document.createElement('td');
+        td1.innerHTML=colDay;
+        td1.className="white";
+        tr.appendChild(td1);
+    
+        var quarters = ["00","15","30","45"];
+        var h,q,id;
+        id=0;
+        for (h = 0; h < 24; h++) {
+         for (q = 0; q < quarters.length; q++) {
+           var td2 = document.createElement('td');
+    //    <td id="0:0" class="blue" onmousedown="doDown(this)"  onmouseenter="doEnter(this)" >0:00</td>
+           td2.id=id+":"+i;
+           id++;
+           td2.innerHTML=h+":"+quarters[q];
+           td2.className="blue";
+           td2.setAttribute("onmousedown","doDown(this)");
+           td2.setAttribute("onmouseenter","doEnter(this)");
+           tr.appendChild(td2);
+         }
+        }
+    
+        tablebody.appendChild(tr);
+    }
+    document.getElementById("table").appendChild(table);
+  var tablebody = table.getElementsByTagName('TBODY');
+console.log('table body = '+tablebody.length);
+
+}
+
+
 </script>
 
 
-</body>
+        <script>
+
+            // figure out ip address or host name of the RGPIO server to construct WebSocket server URL
+
+            g_ws = null;
+            g_serverAddress = "ws://192.168.0.3:7789";
+            document.getElementById("serverAddress").value = g_serverAddress;
+
+            function wsconnect() {
+
+                if ("WebSocket" in window)
+                {
+                    var serverAddress = document.getElementById('serverAddress').value;
+                    g_ws = new WebSocket(serverAddress);
+
+                    g_ws.onopen = function ()
+                    {
+                        document.getElementById("serverAddress").className = "green";
+                    };
+
+                    g_ws.onclose = function (evt)
+                    {
+                        document.getElementById("serverAddress").className = "red";
+                    };
+
+                    g_ws.onerror = function ()
+                    {
+                        document.getElementById("serverAddress").className = "red";
+                    };
+
+                    g_ws.onmessage = function (event)
+                    {
+                        if (event.data.length > 0) {
+                            console.log("received  : " + event.data);
+                        }
+                    };
+
+
+                } else
+                {
+                    alert("WebSocket NOT supported by your Browser!");
+                }
+            }
+
+
+
+        </script>
+
+    </body>
 </html>
 
