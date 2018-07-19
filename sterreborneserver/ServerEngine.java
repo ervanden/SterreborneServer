@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class ServerEngine implements WSServerListener {
 
@@ -76,6 +77,7 @@ public class ServerEngine implements WSServerListener {
         WSServer webSocketServer;
         webSocketServer = new WSServer(portNumber + 1000);
         webSocketServer.addListener(this);
+        System.out.println("Starting Websocket Server on port "+portNumber+1000);
         webSocketServer.start();
         serverEngineThread.start();
     }
@@ -96,6 +98,14 @@ public class ServerEngine implements WSServerListener {
 
         System.out.println("calling onClientRequest cmd=" + request);
 
+        String[] tokens=request.split(":");
+        System.out.println(" nr tokens = "+tokens.length);
+        String day=tokens[1];
+        String hour=tokens[2];
+        String minute=tokens[3];
+        String color=tokens[4];
+        System.out.println("="+day+"="+hour+"="+minute+"="+color);
+
         if (request.equals("NEWSCHEDULE")){
 
             for (int col = 0; col < columnCount; col++) {
@@ -107,8 +117,8 @@ public class ServerEngine implements WSServerListener {
                     //                     tv.once = (color.equals("darkred") || color.equals("darkblue"));
                 }
             }
-
         }
+
         ArrayList<String> reply = new ArrayList<>();
         reply.add("reply to " + request);
         return reply;

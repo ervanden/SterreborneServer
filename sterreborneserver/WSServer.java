@@ -46,14 +46,14 @@ public class WSServer extends WebSocketServer {
     public void onMessage(WebSocket clientConnection, String request) {
 
         ArrayList<String> reply;
-        System.out.println("MESSAGE FROM CLIENT " + clientConnection + " : " + request);
+//        System.out.println("MESSAGE FROM CLIENT " + clientConnection + " : " + request);
         reply = listener.onClientRequest(clientConnection.toString(), request);
         for (String r : reply) {
-            System.out.println(" reply : "+r);
+//            System.out.println(" reply : "+r);
             clientConnection.send(r);
         }
 
-        System.out.println("DONE WITH CLIENT " + clientConnection);
+//        System.out.println("DONE WITH CLIENT " + clientConnection);
 
     }
 
