@@ -16,7 +16,7 @@ public class ServerEngine implements WSServerListener {
 
     public int portNumber;
     public int output;
-    
+
     public boolean STATE = false;
     public boolean expired = false;
 
@@ -52,18 +52,18 @@ public class ServerEngine implements WSServerListener {
         this.output = output;
         SterreborneServer.rgpioInterface.initOutputPin(output);
 
-        scheduleFileName = "/home/pi/Scheduler/Schedule"+portNumber+".txt";
+        scheduleFileName = "/home/pi/Scheduler/Schedule" + portNumber + ".txt";
         if (!SterreborneServer.server_controlActive) {
-            scheduleFileName = "C:\\Users\\erikv\\Documents\\Scheduler\\Schedule"+portNumber+".txt";
+            scheduleFileName = "C:\\Users\\erikv\\Documents\\Scheduler\\Schedule" + portNumber + ".txt";
         }
 
         this.STATE = false;  // sure ??
         restoreSchedule();
 
     }
-    
-    private void msg(int verbosity, String message){
-                SchedulerPanel.serverMessage(portNumber,verbosity,message);
+
+    private void msg(int verbosity, String message) {
+        SchedulerPanel.serverMessage(portNumber, verbosity, message);
     }
 
     public boolean scheduleHasData() {
@@ -74,23 +74,45 @@ public class ServerEngine implements WSServerListener {
     public void start() {
         new PiServer(this).start();
         WSServer webSocketServer;
-        webSocketServer = new WSServer(7777);
+        webSocketServer = new WSServer(portNumber + 1000);
         webSocketServer.addListener(this);
         webSocketServer.start();
         serverEngineThread.start();
     }
 
 
-// WSServer calls onClientRequest when receiving a request
 
-        public ArrayList<String> onClientRequest(String clientID, String request) {
-            ArrayList<String> reply = new ArrayList<>();
+    String printColor(boolean on, boolean once){
+        if (on && once) return "darkred";
+        if (!on && once) return "darkblue";
+        if (on && !once) return "red";
+        if (!on && !once) return "blue";
+        return "";
+    }
 
-            System.out.println("calling onClientRequest cmd=" + request);
-            reply.add("reply to "+request);
-            return reply;
+    // WSServer calls onClientRequest when receiving a request
+
+    public ArrayList<String> onClientRequest(String clientID, String request) {
+
+        System.out.println("calling onClientRequest cmd=" + request);
+
+        if (request.equals("NEWSCHEDULE")){
+
+            for (int col = 0; col < columnCount; col++) {
+                for (int row = 0; row < rowCount; row++) {
+
+                    TimeValue tv = tableData[row][col];
+                    System.out.println(">> "+tv.dayName() + " " + tv.hour()+ " " + tv.minute()+" "+printColor(tv.on, tv.once));
+                    //                     tv.on = (color.equals("red") || color.equals("darkred"));
+                    //                     tv.once = (color.equals("darkred") || color.equals("darkblue"));
+                }
+            }
+
         }
-
+        ArrayList<String> reply = new ArrayList<>();
+        reply.add("reply to " + request);
+        return reply;
+    }
 
 
     public ArrayList<String> restart() {
