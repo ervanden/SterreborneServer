@@ -77,14 +77,13 @@ public class ServerEngine implements WSServerListener {
         WSServer webSocketServer;
         webSocketServer = new WSServer(portNumber + 1000);
         webSocketServer.addListener(this);
-        System.out.println("Starting Websocket Server on port "+portNumber+1000);
+        System.out.println("Starting Websocket Server on port " + portNumber + 1000);
         webSocketServer.start();
         serverEngineThread.start();
     }
 
 
-
-    String printColor(boolean on, boolean once){
+    String printColor(boolean on, boolean once) {
         if (on && once) return "darkred";
         if (!on && once) return "darkblue";
         if (on && !once) return "red";
@@ -98,30 +97,36 @@ public class ServerEngine implements WSServerListener {
 
         System.out.println("calling onClientRequest cmd=" + request);
 
-        String[] tokens=request.split(":");
-        System.out.println(" nr tokens = "+tokens.length);
-        String day=tokens[1];
-        String hour=tokens[2];
-        String minute=tokens[3];
-        String color=tokens[4];
-        System.out.println("="+day+"="+hour+"="+minute+"="+color);
+        String[] tokens = request.split(":");
+        if (tokens[0].equals("NS")) {
+            if ((tokens.length == 2) && (tokens[1].equals("APPLY"))) {
+                saveSchedule();
+                restart();
+            } else if (tokens.length != 5) {
+                msg(1, "invalid message: <" + request + ">");
+            } else {
+                String day = tokens[1];
+                int hour = Integer.parseInt(tokens[2]);
+                int minute = Integer.parseInt(tokens[3]);
+                String color = tokens[4];
+                System.out.println("=" + day + "=" + hour + "=" + minute + "=" + color);
 
-        if (request.equals("NEWSCHEDULE")){
-
-            for (int col = 0; col < columnCount; col++) {
-                for (int row = 0; row < rowCount; row++) {
-
-                    TimeValue tv = tableData[row][col];
-                    System.out.println(">> "+tv.dayName() + " " + tv.hour()+ " " + tv.minute()+" "+printColor(tv.on, tv.once));
-                    //                     tv.on = (color.equals("red") || color.equals("darkred"));
-                    //                     tv.once = (color.equals("darkred") || color.equals("darkblue"));
+                for (int col = 0; col < columnCount; col++) {
+                    if (tableData[0][col].dayName().equals(day)) {
+                        int row = hour * 4 + (minute / 15);
+                        TimeValue tv = tableData[row][col];
+                        System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + printColor(tv.on, tv.once) + "  row=" + row + " col=" + col);
+                        System.out.println("NS " + day + ":" + hour + ":" + minute + "=" + color + "  row=" + row + " col=" + col);
+tv.on=(color.equals("red")|| color.equals("darkred"));
+tv.once=(color.equals("darkred")|| color.equals("darkblue"));
+                    }
                 }
             }
+        } else if (tokens[0].equals("GS")) {  // Get Schedule
+
         }
 
-        ArrayList<String> reply = new ArrayList<>();
-        reply.add("reply to " + request);
-        return reply;
+            return null;
     }
 
 
