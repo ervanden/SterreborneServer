@@ -6,7 +6,7 @@
   <title>Sterreborne scheduler</title>
 </head>
 
-<body onload="wsconnect();"> 
+<body> 
   <style>
   p,span,form {font-family:Arial, sans-serif;font-size:14px;}
   span.userinfo { font-style: italic; color: black; }
@@ -127,26 +127,110 @@
 <br>
 
 
-<script> // check status
+<script> 
+
+// global variables
+
+        g_firstCell=null;       // first corner of the area the user wants to change
+        g_activeColor="red";    // color selected in the legend
+
+        g_cells = new Array(96);    // stores a pointer to all the td in the schedule
+        for (var i = 0; i < 24*4; i++) {
+         g_cells[i] = new Array(7);
+        }
+
+        g_colors = new Array(96);    // stores the colors until the second point of the area is clicked
+        for (var i = 0; i < 24*4; i++) {
+         g_colors[i] = new Array(7);
+        }
+
+        g_initialcolors = new Array(96); // stores the colors on table load to know how many cells have changed
+        for (var i = 0; i < 24*4; i++) {
+         g_initialcolors[i] = new Array(7);
+        }
+
+        var g_dayToRow = {};
 
 
-function setStatusColor(color){
-document.getElementById("statusbutton").className=color;
+            // figure out ip address or host name of the RGPIO server to construct WebSocket server URL
+
+            g_ws = null;
+            g_serverAddress = "ws://192.168.0.3:7789";
+            document.getElementById("serverAddress").value = g_serverAddress;
+
+            function wsconnect() {
+
+                if ("WebSocket" in window)
+                {
+                    var serverAddress = document.getElementById('serverAddress').value;
+                    g_ws = new WebSocket(serverAddress);
+
+                    g_ws.onopen = function ()
+                    {
+                        document.getElementById("serverAddress").className = "green";
+                        onWSConnected();  // are all functions already loaded now??
+                    };
+
+                    g_ws.onclose = function (evt)
+                    {
+                        document.getElementById("serverAddress").className = "red";
+                    };
+
+                    g_ws.onerror = function ()
+                    {
+                        document.getElementById("serverAddress").className = "red";
+                    };
+
+                    g_ws.onmessage = function (event)
+                    {
+                        try {
+                                    var msg = JSON.parse(event.data);
+                            } catch (e) {
+                                    console.log("JSON.parse failed on : " + event.data);
+
+                            }
+                        if (typeof msg !== "undefined") {
+                          if (msg.messageID === "STATUS") {
+                           g_statusButton.innerHTML="STATUS : "+msg.status; 
+                           if (msg.status==="ON")  setStatusColor("redbutton");
+                           if (msg.status==="OFF") setStatusColor("bluebutton");
+                          } else if (msg.messageID === "CS") {    // current schedule
+console.log(event.data);
+                           var day=msg.day;
+                           var hour=msg.hour;
+                           var minute=msg.minute;
+                           var color=msg.color;
+                           var row=g_dayToRow[day];
+                           var col=4*hour;
+                           if (minute==="15") col=col+1;
+                           if (minute==="30") col=col+2;
+                           if (minute==="45") col=col+3;
+                           var td= g_cells[col][row];
+console.log("td row="+row+" col="+col+" name="+td.innerHTML);
+                           td.className=color;
+                          }
+                        }
+                           
+                   }
+            }
 }
 
-$("#statusbutton").click(
-function(event){
-             $("#statusbutton").html("STATUS : waiting for response"); 
+
+wsconnect();
+
+function setStatusColor(color){
+g_statusButton.className=color;
+}
+
+g_statusButton= document.getElementById("statusbutton");
+
+function updateStatus(){
+             g_statusButton.innerHTML="STATUS : waiting for response..."; 
              setStatusColor("unknownbutton");
-             $.post("SchedulerStatus.php",
-                    { port : g_port },
-                    function(data,status){ 
-                        $("#statusbutton").html("STATUS : "+data); 
-                        if (data.indexOf("ON")>=0)  setStatusColor("redbutton");
-                        if (data.indexOf("OFF")>=0)  setStatusColor("bluebutton");
-                    }
-             );
-});
+             g_ws.send("GETSTATUS");
+};
+
+g_statusButton.onclick="updateStatus()";
 
 function change_target(){
  console.log($("#targetselect").val());
@@ -296,61 +380,24 @@ function setActiveColor(colorName) {
 g_activeColor=colorName;
 };
 
-$(document).ready( 
- function() {
+function onWSConnected() {
   g_port=6789;
-  load_schedule();
   constructTable();
+  create_g_cells();
+  load_schedule();
+
 var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
 var k;
 for (k = 0; k < days.length; k++) {
- console.log("col for day "+days[k]+" is "+ g_day_to_column[days[k]]);
+ console.log("col for day "+days[k]+" is "+ g_dayToRow[days[k]]);
 }
 
-  create_g_cells();
- }
-);
+}
 
 
 function load_schedule(){
-
-// initialize
-
-        g_firstCell=null;       // first corner of the area the user wants to change
-        g_activeColor="red";    // color selected in the legend
-
-        g_cells = new Array(96);    // stores a pointer to all the td in the schedule
-        for (var i = 0; i < 24*4; i++) {
-         g_cells[i] = new Array(7);
-        }
-
-        g_colors = new Array(96);    // stores the colors until the second point of the area is clicked
-        for (var i = 0; i < 24*4; i++) {
-         g_colors[i] = new Array(7);
-        }
-
-        g_initialcolors = new Array(96); // stores the colors on table load to know how many cells have changed
-        for (var i = 0; i < 24*4; i++) {
-         g_initialcolors[i] = new Array(7);
-        }
-
-        g_day_to_column = {};
-
-//update the status
-
-        $("#statusbutton").trigger("click");
-
-// load the schedule from the server
-
-       $("#table").html("<br><br><br><br><br>Loading the schedule...<br><br><br><br><br><br>");
-/*
-        $.post("SchedulerTable1.php",
-        { port : g_port },
-        function(data,status){
-          $("#table").html(data);
-          create_g_cells();
-        });
-*/
+        updateStatus();
+        g_ws.send("GETSCHEDULE");
 };
 
 function create_g_cells(){
@@ -391,14 +438,12 @@ function(){
       }
   }
   g_ws.send("NS:APPLY");
-  g_ws.send("NS:O:O");
-  g_ws.send("NS");
 
  create_g_cells();  // just to reset g_initialcolors
 
  setTimeout(        // allow the server some time to process the new schedule
    function commitEffect() {
-      $("#statusbutton").trigger("click");
+      updateStatus();
       $("#commitinfo").text("no changes since last commit");
    },
    3000);
@@ -423,14 +468,14 @@ for (k = 0; k < days.length; k++) {
     table.appendChild(tablebody);
     var i;
     for (i = 0; i < days.length; i++) {
-        var colDay=days[(d.getDay()+i)%7];
-        g_day_to_column[colDay]=i;
-
         var tr = document.createElement('tr');   
-        tr.id=colDay;
+        var rowDay=days[(d.getDay()+i)%7];
+        g_dayToRow[rowDay]=i;
+
+        tr.id=rowDay;
     
         var td1 = document.createElement('td');
-        td1.innerHTML=colDay;
+        td1.innerHTML=rowDay;
         td1.className="white";
         tr.appendChild(td1);
     
@@ -464,49 +509,6 @@ console.log('table body = '+tablebody.length);
 
 
         <script>
-
-            // figure out ip address or host name of the RGPIO server to construct WebSocket server URL
-
-            g_ws = null;
-            g_serverAddress = "ws://192.168.0.3:7789";
-            document.getElementById("serverAddress").value = g_serverAddress;
-
-            function wsconnect() {
-
-                if ("WebSocket" in window)
-                {
-                    var serverAddress = document.getElementById('serverAddress').value;
-                    g_ws = new WebSocket(serverAddress);
-
-                    g_ws.onopen = function ()
-                    {
-                        document.getElementById("serverAddress").className = "green";
-                    };
-
-                    g_ws.onclose = function (evt)
-                    {
-                        document.getElementById("serverAddress").className = "red";
-                    };
-
-                    g_ws.onerror = function ()
-                    {
-                        document.getElementById("serverAddress").className = "red";
-                    };
-
-                    g_ws.onmessage = function (event)
-                    {
-                        if (event.data.length > 0) {
-                            console.log("received  : " + event.data);
-                        }
-                    };
-
-
-                } else
-                {
-                    alert("WebSocket NOT supported by your Browser!");
-                }
-            }
-
 
 
         </script>

@@ -83,28 +83,45 @@ public class ServerEngine implements WSServerListener {
     }
 
 
-    String printColor(boolean on, boolean once) {
-        if (on && once) return "darkred";
-        if (!on && once) return "darkblue";
-        if (on && !once) return "red";
-        if (!on && !once) return "blue";
-        return "";
-    }
+
 
     // WSServer calls onClientRequest when receiving a request
 
     public ArrayList<String> onClientRequest(String clientID, String request) {
 
         System.out.println("calling onClientRequest cmd=" + request);
+        ArrayList<String> reply= new ArrayList<>();
 
+        boolean invalidMessage = false;
         String[] tokens = request.split(":");
-        if (tokens[0].equals("NS")) {
-            if ((tokens.length == 2) && (tokens[1].equals("APPLY"))) {
-                saveSchedule();
-                restart();
-            } else if (tokens.length != 5) {
-                msg(1, "invalid message: <" + request + ">");
+
+        if (tokens.length == 1) {
+
+            if (tokens[0].equals("GETSTATUS")) {
+reply=getStatus();
+            } else if (tokens[0].equals("GETSCHEDULE")) {  // Get Schedule
+reply=JSONSchedule();
             } else {
+                invalidMessage = true;
+            }
+
+
+        } else if (tokens.length == 2) {
+
+            if (tokens[0].equals("NS")) {
+                if (tokens[1].equals("APPLY")) {
+                    saveSchedule();
+                    restart();
+                } else {
+                    invalidMessage = true;
+                }
+            } else {
+                invalidMessage = true;
+            }
+
+
+        } else if (tokens.length == 5) {
+            if (tokens[0].equals("NS")) {
                 String day = tokens[1];
                 int hour = Integer.parseInt(tokens[2]);
                 int minute = Integer.parseInt(tokens[3]);
@@ -115,19 +132,24 @@ public class ServerEngine implements WSServerListener {
                     if (tableData[0][col].dayName().equals(day)) {
                         int row = hour * 4 + (minute / 15);
                         TimeValue tv = tableData[row][col];
-                        System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + printColor(tv.on, tv.once) + "  row=" + row + " col=" + col);
+                        System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + tv.color() + "  row=" + row + " col=" + col);
                         System.out.println("NS " + day + ":" + hour + ":" + minute + "=" + color + "  row=" + row + " col=" + col);
-tv.on=(color.equals("red")|| color.equals("darkred"));
-tv.once=(color.equals("darkred")|| color.equals("darkblue"));
+                        tv.on = (color.equals("red") || color.equals("darkred"));
+                        tv.once = (color.equals("darkred") || color.equals("darkblue"));
                     }
                 }
+            } else { // invalid request
+                invalidMessage = true;
             }
-        } else if (tokens[0].equals("GS")) {  // Get Schedule
 
+        } else {  // invalid number of tokens
+            invalidMessage = true;
         }
 
-            return null;
-    }
+        if (invalidMessage) msg(1, "invalid message: <" + request + ">");
+
+        return reply;
+}
 
 
     public ArrayList<String> restart() {
@@ -164,9 +186,9 @@ tv.once=(color.equals("darkred")|| color.equals("darkblue"));
     public ArrayList<String> getStatus() {
         ArrayList<String> reply = new ArrayList<>();
         if (STATE) {
-            reply.add("ON");
+            reply.add("{\"messageID\":\"STATUS\", \"status\":\"ON\"}");
         } else {
-            reply.add("OFF");
+            reply.add("{\"messageID\":\"STATUS\", \"status\":\"OFF\"}");
         }
         return reply;
     }
@@ -183,6 +205,23 @@ tv.once=(color.equals("darkred")|| color.equals("darkblue"));
         } else {
             for (int row = 0; row < rowCount; row++) {
                 reply.add(tableData[row][col].asString());
+            }
+        }
+        return reply;
+    }
+
+    public ArrayList<String> JSONSchedule() {
+        ArrayList<String> reply = new ArrayList<>();
+
+        // if tableData has no values (first start of pi) return an empty list
+        if (tableData[0][0] == null) {
+            msg(1, "No data to send");
+            return reply;
+        } else {
+            for (int col = 0; col < columnCount; col++) {
+                for (int row = 0; row < rowCount; row++) {
+                    reply.add(tableData[row][col].asJSONString());
+                }
             }
         }
         return reply;

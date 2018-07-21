@@ -100,6 +100,24 @@ public class TimeValue extends GregorianCalendar {
 
     }
 
+    String color() {
+        if (on && once) return "darkred";
+        if (!on && once) return "darkblue";
+        if (on && !once) return "red";
+        if (!on && !once) return "blue";
+        return "?";
+    }
+
+    public String asJSONString() {
+      return "{"+
+              "\"messageID\":\"CS\", " +
+              "\"day\":\""+dayName()+"\","+
+              "\"hour\":\""+hour()+"\","+
+              "\"minute\":\""+minute()+"\","+
+              "\"color\":\""+color()+"\""+
+              "}";
+    }
+
     static public TimeValue stringToTimeValue(String s) {
         String[] tokens = s.split(" ");
         String dayName = tokens[0];
