@@ -20,12 +20,9 @@ public class ServerEngineThread extends Thread {
         }
     }
 
-    private void msg(int verbosity, String message) {
-        SchedulerPanel.serverMessage(serverEngine.portNumber, verbosity, message);
-    }
 
     public void restart() {
-        msg(1, "serverEngineThread is asked to restart");
+        SterreborneServer.message(serverEngine.portNumber, 1, "serverEngineThread is asked to restart");
         stop = true;
         // startScheduling() will now terminate and will be called again in run()
     }
@@ -39,41 +36,24 @@ public class ServerEngineThread extends Thread {
 
             }
             if (stop) {
-                msg(1, "sleep is interrupted");
+                SterreborneServer.message(serverEngine.portNumber, 1, "sleep is interrupted");
                 return;
             }
         }
     }
 
-    /* switch on/off only if the state is different from the previous one
-     Then no SET is sent until schedule says ON (because serverEngine state initialized as OFF
 
-     private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
-     if (serverEngine.STATE != newState) {
-     if (newState) {
-     serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
-     } else {
-     serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
-     }
-     if (showMessage) {
-     msg(1, printState(tnow) + "  <-----------");
-     }
-     } else {
-     if (showMessage) {
-     msg(1, printState(tnow));
-     }
-     }
-     }
-     */
-    
     private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
         if (newState) {
             serverEngine.STATE = SterreborneServer.rgpioInterface.switchOn(serverEngine.output);
         } else {
             serverEngine.STATE = SterreborneServer.rgpioInterface.switchOff(serverEngine.output);
         }
+
+        serverEngine.JSONStatusToAll();
+
         if (showMessage) {
-            msg(1, printState(tnow) + "  <-----------");
+            SterreborneServer.message(serverEngine.portNumber, 1, printState(tnow) + "  <-----------");
         }
     }
 
@@ -88,7 +68,7 @@ public class ServerEngineThread extends Thread {
     }
 
     private void startScheduling() {
-        msg(1, "Restart scheduling");
+        SterreborneServer.message(serverEngine.portNumber, 1, "Restart scheduling");
 
         TimeValue tnow;
         TimeValue tprev;
@@ -98,7 +78,7 @@ public class ServerEngineThread extends Thread {
         boolean firstIteration = true;
 
         if (!serverEngine.scheduleHasData()) {
-            msg(1, "Schedule has no data. Waiting...");
+            SterreborneServer.message(serverEngine.portNumber, 1, "Schedule has no data. Waiting...");
             stoppableSleep(60);
         } else {
             /* PSEUDO CODE,DO NOT REMOVE    
@@ -114,7 +94,7 @@ public class ServerEngineThread extends Thread {
 
             tnow = new TimeValue(); //compiler needs initialization
 
-            msg(1, printState(tnow) + "  <----------- Pin STATE");
+            SterreborneServer.message(serverEngine.portNumber, 1, printState(tnow) + "  <----------- Pin STATE");
 
             while (!stop) {
 
@@ -138,11 +118,11 @@ public class ServerEngineThread extends Thread {
                 tprev = serverEngine.previousEvent(tnow.dayName(), tnow.hour(), tnow.minute());
                 tnext = serverEngine.nextEvent(tnow.dayName(), tnow.hour(), tnow.minute());
 
-                msg(2, tprev.dateName() + " < " + tnow.dateName() + "  < " + tnext.dateName());
+                SterreborneServer.message(serverEngine.portNumber, 2, tprev.dateName() + " < " + tnow.dateName() + "  < " + tnext.dateName());
 
                 /* tprev is always on the same day as tnow */
                 currentState = getState(tprev);
-                msg(2, "current state according to schedule (tprev)  = " + currentState);
+                SterreborneServer.message(serverEngine.portNumber, 2, "current state according to schedule (tprev)  = " + currentState);
 
                 if (stop) {
                     return;
@@ -155,14 +135,14 @@ public class ServerEngineThread extends Thread {
                 // If tnow is in the last timeslot of the schedule, all future events expire
 
                 nextState = getState(tnext);
-                msg(2, "next state according to schedule (tnext) = " + nextState);
+                SterreborneServer.message(serverEngine.portNumber, 2, "next state according to schedule (tnext) = " + nextState);
                 int secondsToNextEvent = tnext.isSecondsLaterThan(tnow);
                 if (secondsToNextEvent < 0) {
                     // we are in the last timeslot of the day, tnext is next day
                     secondsToNextEvent = 24 * 3600 - (tnow.hour() * 3600 + tnow.minute() * 60);
                 }
-                msg(2, "seconds to next event = " + secondsToNextEvent);
-                msg(2, "Sleeping " + secondsToNextEvent);
+                SterreborneServer.message(serverEngine.portNumber, 2, "seconds to next event = " + secondsToNextEvent);
+                SterreborneServer.message(serverEngine.portNumber, 2, "Sleeping " + secondsToNextEvent);
 
                 if (!fastforward) {
                     stoppableSleep(secondsToNextEvent);
@@ -176,7 +156,7 @@ public class ServerEngineThread extends Thread {
 
                 changeState(nextState, tnow, true);
 
-                msg(2, "Sleeping " + 5 * 60);
+                SterreborneServer.message(serverEngine.portNumber, 2, "Sleeping " + 5 * 60);
 
                 if (!fastforward) {
                     stoppableSleep(5 * 60);

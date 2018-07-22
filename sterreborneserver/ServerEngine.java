@@ -11,7 +11,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Calendar;
 
 public class ServerEngine implements WSServerListener {
 
@@ -20,6 +19,7 @@ public class ServerEngine implements WSServerListener {
 
     public boolean STATE = false;
     public boolean expired = false;
+    public WSServer webSocketServer;
 
     // expired=true  means that the current time is after the dates in the schedule
     // and the one time events are no longer to be executed.
@@ -52,20 +52,13 @@ public class ServerEngine implements WSServerListener {
         this.portNumber = portNumber;
         this.output = output;
         SterreborneServer.rgpioInterface.initOutputPin(output);
-
         scheduleFileName = "/home/pi/Scheduler/Schedule" + portNumber + ".txt";
-        if (!SterreborneServer.server_controlActive) {
-            scheduleFileName = "C:\\Users\\erikv\\Documents\\Scheduler\\Schedule" + portNumber + ".txt";
-        }
 
         this.STATE = false;  // sure ??
         restoreSchedule();
 
     }
 
-    private void msg(int verbosity, String message) {
-        SchedulerPanel.serverMessage(portNumber, verbosity, message);
-    }
 
     public boolean scheduleHasData() {
         return tableData[0][0] != null;
@@ -73,16 +66,12 @@ public class ServerEngine implements WSServerListener {
     }
 
     public void start() {
-        new PiServer(this).start();
-        WSServer webSocketServer;
-        webSocketServer = new WSServer(portNumber + 1000);
+        webSocketServer = new WSServer(portNumber);
         webSocketServer.addListener(this);
-        System.out.println("Starting Websocket Server on port " + portNumber + 1000);
+        System.out.println("Starting Websocket Server on port " + portNumber);
         webSocketServer.start();
         serverEngineThread.start();
     }
-
-
 
 
     // WSServer calls onClientRequest when receiving a request
@@ -90,7 +79,7 @@ public class ServerEngine implements WSServerListener {
     public ArrayList<String> onClientRequest(String clientID, String request) {
 
         System.out.println("calling onClientRequest cmd=" + request);
-        ArrayList<String> reply= new ArrayList<>();
+        ArrayList<String> reply = new ArrayList<>();
 
         boolean invalidMessage = false;
         String[] tokens = request.split(":");
@@ -98,9 +87,9 @@ public class ServerEngine implements WSServerListener {
         if (tokens.length == 1) {
 
             if (tokens[0].equals("GETSTATUS")) {
-reply=getStatus();
+                reply = JSONStatus();
             } else if (tokens[0].equals("GETSCHEDULE")) {  // Get Schedule
-reply=JSONSchedule();
+                reply = JSONSchedule();
             } else {
                 invalidMessage = true;
             }
@@ -126,14 +115,13 @@ reply=JSONSchedule();
                 int hour = Integer.parseInt(tokens[2]);
                 int minute = Integer.parseInt(tokens[3]);
                 String color = tokens[4];
-                System.out.println("=" + day + "=" + hour + "=" + minute + "=" + color);
 
                 for (int col = 0; col < columnCount; col++) {
                     if (tableData[0][col].dayName().equals(day)) {
                         int row = hour * 4 + (minute / 15);
                         TimeValue tv = tableData[row][col];
-                        System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + tv.color() + "  row=" + row + " col=" + col);
-                        System.out.println("NS " + day + ":" + hour + ":" + minute + "=" + color + "  row=" + row + " col=" + col);
+//System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + tv.color() + "  row=" + row + " col=" + col);
+//System.out.println("NS " + day + ":" + hour + ":" + minute + "=" + color + "  row=" + row + " col=" + col);
                         tv.on = (color.equals("red") || color.equals("darkred"));
                         tv.once = (color.equals("darkred") || color.equals("darkblue"));
                     }
@@ -146,14 +134,14 @@ reply=JSONSchedule();
             invalidMessage = true;
         }
 
-        if (invalidMessage) msg(1, "invalid message: <" + request + ">");
+        if (invalidMessage) SterreborneServer.message(portNumber,1, "invalid message: <" + request + ">");
 
         return reply;
-}
+    }
 
 
     public ArrayList<String> restart() {
-        msg(1, "serverEngine is asked to restart");
+        SterreborneServer.message(portNumber,1, "serverEngine is asked to restart");
         serverEngineThread.restart();
         ArrayList<String> reply = new ArrayList<>();
         reply.add("ok");
@@ -165,7 +153,7 @@ reply=JSONSchedule();
     }
 
     public ArrayList<String> newSchedule(ArrayList<String> timeValueList) {
-        msg(1, "Receiving schedule update");
+        SterreborneServer.message(portNumber,1, "Receiving schedule update");
         int col = 0;
         int row = 0;
         for (String line : timeValueList) {
@@ -183,7 +171,7 @@ reply=JSONSchedule();
         return reply;
     }
 
-    public ArrayList<String> getStatus() {
+    public ArrayList<String> JSONStatus() {
         ArrayList<String> reply = new ArrayList<>();
         if (STATE) {
             reply.add("{\"messageID\":\"STATUS\", \"status\":\"ON\"}");
@@ -193,29 +181,21 @@ reply=JSONSchedule();
         return reply;
     }
 
-    public ArrayList<String> getSchedule(ArrayList<String> day) {
-        ArrayList<String> reply = new ArrayList<>();
-
-        int col = dayToColumn(day.get(0));
-
-        // if tableData has no values (first start of pi) return an empty list
-        if (tableData[0][col] == null) {
-            msg(1, "No data to send");
-            return reply;
+    public void JSONStatusToAll() {
+        if (STATE) {
+            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"ON\"}");
         } else {
-            for (int row = 0; row < rowCount; row++) {
-                reply.add(tableData[row][col].asString());
-            }
+            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"OFF\"}");
         }
-        return reply;
     }
+
 
     public ArrayList<String> JSONSchedule() {
         ArrayList<String> reply = new ArrayList<>();
 
         // if tableData has no values (first start of pi) return an empty list
         if (tableData[0][0] == null) {
-            msg(1, "No data to send");
+            SterreborneServer.message(portNumber,1, "No data to send");
             return reply;
         } else {
             for (int col = 0; col < columnCount; col++) {
@@ -223,6 +203,7 @@ reply=JSONSchedule();
                     reply.add(tableData[row][col].asJSONString());
                 }
             }
+            reply.add("{\"messageID\":\"CSDONE\"}");
         }
         return reply;
     }
@@ -232,7 +213,8 @@ reply=JSONSchedule();
 
         // Stores the schedule in a file to restore after pi boot
         // This procedure is called after every update of the schedule
-        msg(1, "Saving the schedule to " + scheduleFileName);
+
+        SterreborneServer.message(portNumber,1, "Saving the schedule to " + scheduleFileName);
         try {
             File initialFile = new File(scheduleFileName);
             OutputStream is = new FileOutputStream(initialFile);
@@ -252,7 +234,7 @@ reply=JSONSchedule();
             reply.add("ok");
 
         } catch (IOException io) {
-            msg(1, "io exception while writing to " + scheduleFileName);
+            SterreborneServer.message(portNumber,1, "io exception while writing to " + scheduleFileName);
             reply.add("io exception while writing to " + scheduleFileName);
         }
         return reply;
@@ -265,7 +247,7 @@ reply=JSONSchedule();
         ArrayList<String> msg;
         BufferedReader inputStream = null;
 
-        msg(1, "Restoring the schedule from " + scheduleFileName);
+        SterreborneServer.message(portNumber,1, "Restoring the schedule from " + scheduleFileName);
         try {
             File initialFile = new File(scheduleFileName);
             InputStream is = new FileInputStream(initialFile);
@@ -308,7 +290,7 @@ reply=JSONSchedule();
         if (!expired) {
             if (!tnow.isSameDateAs(tableData[0][dayToColumn(tnow.dayName())])) {
                 expired = true;
-                msg(1, "expire on date ");
+                SterreborneServer.message(portNumber,1, "expire on date ");
             }
         }
     }
@@ -322,7 +304,7 @@ reply=JSONSchedule();
 
             if ((row == (rowCount - 1)) && (col == (columnCount - 1))) {
                 expired = true;
-                msg(1, "expire on end of schedule ");
+                SterreborneServer.message(portNumber,1, "expire on end of schedule ");
             }
         }
     }

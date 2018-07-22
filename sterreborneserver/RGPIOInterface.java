@@ -71,7 +71,7 @@ public class RGPIOInterface {
     static public boolean switchOn(int n) {
         System.out.println("switchOn(" + n + ")");
         GpioPinDigitalOutput pin = initializedOutputPins[n];
-        if (SterreborneServer.server_controlActive) {
+        if (SterreborneServer.controlActive) {
             System.out.println("Pi4J Pin " + n + " On");
             pin.high();
         }
@@ -81,7 +81,7 @@ public class RGPIOInterface {
     static public boolean switchOff(int n) {
         System.out.println("switchOff(" + n + ")");
         GpioPinDigitalOutput pin = initializedOutputPins[n];
-        if (SterreborneServer.server_controlActive) {
+        if (SterreborneServer.controlActive) {
             System.out.println("Pi4J Pin " + n + " Off");
             pin.low();
         }
@@ -94,7 +94,7 @@ public class RGPIOInterface {
 
     static public boolean initOutputPin(int n) {
         GpioPinDigitalOutput op = null;
-        if (SterreborneServer.server_controlActive) {
+        if (SterreborneServer.controlActive) {
             op = gpio.provisionDigitalOutputPin(intToPin(n), "LED", PinState.LOW);
             initializedOutputPins[n] = op;
         }
@@ -104,7 +104,7 @@ public class RGPIOInterface {
         static public GpioPinDigitalInput initInputPin(int n) {
             // return the GpioPin so that a listener can be added to it
             GpioPinDigitalInput ip = null;
-            if (SterreborneServer.server_controlActive) {
+            if (SterreborneServer.controlActive) {
             ip = gpio.provisionDigitalInputPin(intToPin(n), PinPullResistance.PULL_DOWN);
             ip.setShutdownOptions(true);
             initializedInputPins[n] = ip;
@@ -113,7 +113,7 @@ public class RGPIOInterface {
     }
 
     public static void initialize() {
-        if (SterreborneServer.server_controlActive) {
+        if (SterreborneServer.controlActive) {
             gpio = GpioFactory.getInstance();
         }
     }

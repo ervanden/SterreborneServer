@@ -2,12 +2,12 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <title>Sterreborne scheduler</title>
+    <meta charset="utf-8">
+    <title>Sterreborne scheduler</title>
 </head>
 
-<body> 
-  <style>
+<body>
+<style>
   p,span,form {font-family:Arial, sans-serif;font-size:14px;}
   span.userinfo { font-style: italic; color: black; }
   span.redstatus {font-weight: 900;color: rgb(255,0,0); background-color: white}
@@ -22,7 +22,8 @@
     top: 0;
     left: 20px;
   }
-  </style>
+
+</style>
 
 <style type="text/css">
 .tg  {border-collapse:collapse;border-spacing:0;}
@@ -32,8 +33,8 @@
 .tg .darkblue{background-color:#0004ff;vertical-align:top}
 .tg .red{background-color:#ffccc9;vertical-align:top}
 .tg .darkred{background-color:#ff0000;vertical-align:top}
-</style>
 
+</style>
 
 
 <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
@@ -46,67 +47,68 @@
 .legend   .darkblue{background-color:#0004ff;vertical-align:top; width:30px}
 .legend   .red{background-color:#ffccc9;vertical-align:top;      width:30px}
 .legend   .darkred{background-color:#ff0000;vertical-align:top;  width:30px}
+
 </style>
 
-        <style type="text/css">
+<style type="text/css">
             * {font-family:Arial, sans-serif;font-size:12px}
             input.white {background-color:white}
             input.green {background-color:green}
             input.grey {background-color:grey}
             input.red {background-color:red}
-        </style>
 
+</style>
 
 
 <div class="fixed">
-   <br>
-        <form>
-            <input type="text" id="serverAddress" name="serverAddress" class="white" value="ws://X.X.X.X:2603">
-        </form>
-        <br>
-<table>
-<tr>
-<td>
-   <form id="targetform">
-     <select name="target" id="targetselect" onchange="change_target()" >
-       <option value="heating">Heating</option>
-       <option value="boiler">Boiler</option>
-     </select>
-   </form>
-</td>
-<td>
-   <form id="statusform">
-   <button type="button" id="statusbutton" class="unknownbutton">STATUS ?</button>
-   <span id="statusinfo" class="userinfo"></span>
-   </form>
-</td>
-</tr>
-</table>
-<br>
+    <br>
+    <form>
+        <input type="text" id="serverAddress" name="serverAddress" class="white" value="ws://X.X.X.X:2603">
+    </form>
+    <br>
+    <table>
+        <tr>
+            <td>
+                <form id="targetForm">
+                    <select name="target" id="targetSelect" onchange="change_target()">
+                        <option value="heating">Heating</option>
+                        <option value="boiler">Boiler</option>
+                    </select>
+                </form>
+            </td>
+            <td>
+                <form id="statusform">
+                    <button type="button" id="statusbutton" class="unknownbutton">STATUS ?</button>
+                    <span id="statusinfo" class="userinfo"></span>
+                </form>
+            </td>
+        </tr>
+    </table>
+    <br>
 
-   <table class="legend" id="legend">
-   <tbody>
-   <tr> 
-   <td class="white" style="padding-left:0px;padding-right:30px">SELECT A COLOR :  </td>
-   <td class="red"       onmousedown='setActiveColor("red")'>  </td> 
-   <td class="white"     onmousedown='setActiveColor("red")'> ON, every week </td> 
-   <td class="blue"      onmousedown='setActiveColor("blue")'>  </td> 
-   <td class="white"     onmousedown='setActiveColor("blue")'> OFF, every week </td> 
-   <td class="darkred"   onmousedown='setActiveColor("darkred")'>  </td> 
-   <td class="white"     onmousedown='setActiveColor("darkred")'> ON, once </td> 
-   <td class="darkblue"  onmousedown='setActiveColor("darkblue")'>  </td> 
-   <td class="white"     onmousedown='setActiveColor("darkblue")'> OFF, once </td> 
-   </tr>
-   </tbody>
-   </table>
-   <br>
+    <table class="legend" id="legend">
+        <tbody>
+        <tr>
+            <td class="white" style="padding-left:0px;padding-right:30px">SELECT A COLOR :</td>
+            <td class="red" onmousedown='setActiveColor("red")'></td>
+            <td class="white" onmousedown='setActiveColor("red")'> ON, every week</td>
+            <td class="blue" onmousedown='setActiveColor("blue")'></td>
+            <td class="white" onmousedown='setActiveColor("blue")'> OFF, every week</td>
+            <td class="darkred" onmousedown='setActiveColor("darkred")'></td>
+            <td class="white" onmousedown='setActiveColor("darkred")'> ON, once</td>
+            <td class="darkblue" onmousedown='setActiveColor("darkblue")'></td>
+            <td class="white" onmousedown='setActiveColor("darkblue")'> OFF, once</td>
+        </tr>
+        </tbody>
+    </table>
+    <br>
 
-   <form>
-   <button type="button" id="commitbutton" >COMMIT</button>
-   <span id="commitinfo" class="userinfo"> ( no changes since schedule loaded )</span>
-   </form>
-   <br>
-   <br>
+    <form>
+        <button type="button" id="commitButton">COMMIT</button>
+        <span id="commitInfo" class="userinfo"> ( no changes since schedule loaded )</span>
+    </form>
+    <br>
+    <br>
 </div>
 <br>
 <br>
@@ -130,6 +132,12 @@
 <script> 
 
 // global variables
+        g_statusButton= document.getElementById("statusbutton");
+        g_targetSelect=document.getElementById("targetSelect");
+        g_targetForm=document.getElementById("targetForm");
+        g_serverAddress=document.getElementById("serverAddress");
+        g_commitInfo=document.getElementById("commitInfo");
+        g_commitButton=document.getElementById("commitButton");
 
         g_firstCell=null;       // first corner of the area the user wants to change
         g_activeColor="red";    // color selected in the legend
@@ -154,31 +162,30 @@
 
             // figure out ip address or host name of the RGPIO server to construct WebSocket server URL
 
-            g_ws = null;
-            g_serverAddress = "ws://192.168.0.3:7789";
-            document.getElementById("serverAddress").value = g_serverAddress;
+        g_ws = null;
+        g_serverAddress.value = "ws://192.168.0.3:6789";
 
-            function wsconnect() {
+        function wsconnect() {
 
                 if ("WebSocket" in window)
                 {
-                    var serverAddress = document.getElementById('serverAddress').value;
+                    var serverAddress = g_serverAddress.value;
                     g_ws = new WebSocket(serverAddress);
 
                     g_ws.onopen = function ()
                     {
-                        document.getElementById("serverAddress").className = "green";
+                        g_serverAddress.className = "green";
                         onWSConnected();  // are all functions already loaded now??
                     };
 
                     g_ws.onclose = function (evt)
                     {
-                        document.getElementById("serverAddress").className = "red";
+                        g_serverAddress.className = "red";
                     };
 
                     g_ws.onerror = function ()
                     {
-                        document.getElementById("serverAddress").className = "red";
+                        g_serverAddress.className = "red";
                     };
 
                     g_ws.onmessage = function (event)
@@ -190,12 +197,15 @@
 
                             }
                         if (typeof msg !== "undefined") {
+
                           if (msg.messageID === "STATUS") {
                            g_statusButton.innerHTML="STATUS : "+msg.status; 
                            if (msg.status==="ON")  setStatusColor("redbutton");
                            if (msg.status==="OFF") setStatusColor("bluebutton");
+
+
                           } else if (msg.messageID === "CS") {    // current schedule
-console.log(event.data);
+
                            var day=msg.day;
                            var hour=msg.hour;
                            var minute=msg.minute;
@@ -206,62 +216,51 @@ console.log(event.data);
                            if (minute==="30") col=col+2;
                            if (minute==="45") col=col+3;
                            var td= g_cells[col][row];
-console.log("td row="+row+" col="+col+" name="+td.innerHTML);
                            td.className=color;
+
+                          } else if (msg.messageID === "CSDONE") {    // current schedule complete
+
+                           create_g_cells(); // to reset initial colors
+
                           }
                         }
                            
                    }
             }
-}
+         }
 
 
 wsconnect();
+
 
 function setStatusColor(color){
 g_statusButton.className=color;
 }
 
-g_statusButton= document.getElementById("statusbutton");
 
 function updateStatus(){
              g_statusButton.innerHTML="STATUS : waiting for response..."; 
              setStatusColor("unknownbutton");
              g_ws.send("GETSTATUS");
-};
+}
 
 g_statusButton.onclick="updateStatus()";
 
 function change_target(){
- console.log($("#targetselect").val());
- if ($("#targetselect").val() == "heating") { g_port=6789; };
- if ($("#targetselect").val() == "boiler") { g_port=6790; };
- load_schedule();
+ console.log("target ="+targetSelect.value);
+ if (g_targetSelect.value == "heating") { g_port=6789; };
+ if (g_targetSelect.value == "boiler") { g_port=6790; };
+// load_schedule();
  console.log("server port = "+g_port);
 };
 
-$("#targetform").submit(
-function(event){
- console.log($("#targetselect").val());
- if ($("#targetselect").val() == "heating") { g_port=6789; };
- if ($("#targetselect").val() == "boiler") { g_port=6790; };
- load_schedule();
- console.log("server port = "+g_port);
- event.preventDefault();
-});
-
-</script>
 
 
-<script> 
-
-$(document).keydown(        //    intercept <ESC>
-function keydown(event) {
+document.addEventListener('keydown', function(event) {
  if (event.which == 27) {
  g_firstCell=null;
  restoreColors();
- }
-});
+}});
 
 
 function doDown(element) {  // called when schedule cell is clicked
@@ -269,7 +268,7 @@ if (g_firstCell==null) { // first corner was clicked
   g_firstCell=element;
 
 //console.log("first cell = "+element.innerHTML);
-//console.log("saving current cell colors.);
+//console.log("saving current cell colors");
 
   var x;
   var y;
@@ -281,7 +280,7 @@ if (g_firstCell==null) { // first corner was clicked
 
 } else {  // second corner cell was clicked
 
-  //console.log("second cell = "+element.innerHTML);
+//console.log("second cell = "+element.innerHTML);
   //convert first and second corner to x,y coordinates
   
   var xy=g_firstCell.id;
@@ -297,7 +296,7 @@ if (g_firstCell==null) { // first corner was clicked
   var ymin=Math.min(y1,y2);
   var ymax=Math.max(y1,y2);
 
-  //console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
+//console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
 
   // set all cells in this area to the selected color
 
@@ -319,7 +318,7 @@ if (g_firstCell==null) { // first corner was clicked
           if (g_cells[x][y].className != g_initialcolors[x][y]){changedcells++};
       }
   }
-  $("#commitinfo").text(" ( "+changedcells+" cells changed )");
+  g_commitInfo.innerHTML=" ( "+changedcells+" cells changed )";
 
 g_firstCell=null;
 }
@@ -385,13 +384,6 @@ function onWSConnected() {
   constructTable();
   create_g_cells();
   load_schedule();
-
-var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
-var k;
-for (k = 0; k < days.length; k++) {
- console.log("col for day "+days[k]+" is "+ g_dayToRow[days[k]]);
-}
-
 }
 
 
@@ -420,8 +412,7 @@ function create_g_cells(){
 };
 
 
-$("#commitbutton").click(
-function(){
+g_commitButton.onclick= function(){
 
   var table=document.getElementById("schedule");
   var tablebody = table.getElementsByTagName('TBODY')[0];
@@ -443,24 +434,21 @@ function(){
 
  setTimeout(        // allow the server some time to process the new schedule
    function commitEffect() {
-      updateStatus();
-      $("#commitinfo").text("no changes since last commit");
+      //updateStatus();
+      g_commitInfo.innerHTML="no changes since last commit";
    },
    3000);
 
 }
-);
 
 
 function constructTable(){
-
 var d = new Date();
 var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
 var k; 
 for (k = 0; k < days.length; k++) {
  console.log("today+"+k+" is "+ days[(d.getDay()+k)%7]);
 }
-
     var table = document.createElement('table');
     table.id="schedule";
     table.className="tg";
@@ -471,7 +459,6 @@ for (k = 0; k < days.length; k++) {
         var tr = document.createElement('tr');   
         var rowDay=days[(d.getDay()+i)%7];
         g_dayToRow[rowDay]=i;
-
         tr.id=rowDay;
     
         var td1 = document.createElement('td');
@@ -501,18 +488,13 @@ for (k = 0; k < days.length; k++) {
     document.getElementById("table").appendChild(table);
   var tablebody = table.getElementsByTagName('TBODY');
 console.log('table body = '+tablebody.length);
-
 }
+
 
 
 </script>
 
 
-        <script>
-
-
-        </script>
-
-    </body>
+</body>
 </html>
 
