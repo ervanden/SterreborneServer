@@ -87,7 +87,7 @@ public class ServerEngine implements WSServerListener {
         if (tokens.length == 1) {
 
             if (tokens[0].equals("GETSTATUS")) {
-                reply = JSONStatus();
+                JSONStatusToAll();  // does not generate a reply
             } else if (tokens[0].equals("GETSCHEDULE")) {  // Get Schedule
                 reply = JSONSchedule();
             } else if (tokens[0].equals("NSDONE")) {  // New Schedule complete
@@ -109,8 +109,7 @@ public class ServerEngine implements WSServerListener {
                     if (tableData[0][col].dayName().equals(day)) {
                         int row = hour * 4 + (minute / 15);
                         TimeValue tv = tableData[row][col];
-                        if (tv==null) {
-                            // happens when there is no data e.g. when the schedule file was deleted
+                        if (tv==null) {  // happens when there is no data e.g. when the schedule file was deleted
                             tv=new TimeValue();
                         }
 //System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + tv.color() + "  row=" + row + " col=" + col);
@@ -175,10 +174,11 @@ public class ServerEngine implements WSServerListener {
     }
 
     public void JSONStatusToAll() {
+        SterreborneServer.message(portNumber,1,"Sending state update (STATE="+STATE+")");
         if (STATE) {
-            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"ON\"}");
+            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"ON\", \"port\":"+portNumber+"}");
         } else {
-            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"OFF\"}");
+            webSocketServer.sendToAll("{\"messageID\":\"STATUS\", \"status\":\"OFF\", \"port\":"+portNumber+"}");
         }
     }
 
