@@ -6,10 +6,9 @@ public class SterreborneServer {
     static boolean controlActive;
     public static RGPIOInterface rgpioInterface;
 
-public static void mss(){};
 
     public static void message(int portNumber, int level, String message) {
-        if (level>=verbosity){
+        if (level<=verbosity){
             TimeValue now=new TimeValue();
             System.out.println(now.dateName()+ " ["+portNumber+"] "+message);
         }

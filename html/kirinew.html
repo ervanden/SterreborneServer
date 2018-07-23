@@ -37,7 +37,6 @@
 </style>
 
 
-<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
 
 <style type="text/css">
 .legend  {border-collapse:collapse;border-spacing:0;}
@@ -51,20 +50,17 @@
 </style>
 
 <style type="text/css">
-            * {font-family:Arial, sans-serif;font-size:12px}
-            input.white {background-color:white}
-            input.green {background-color:green}
-            input.grey {background-color:grey}
-            input.red {background-color:red}
-
+* {font-family:Arial, sans-serif;font-size:12px}
+span.white {background-color:white}
+span.green {background-color:green}
+span.red {background-color:red}
 </style>
 
 
 <div class="fixed">
     <br>
-    <form>
-        <input type="text" id="serverAddress" name="serverAddress" class="white" value="ws://X.X.X.X:2603">
-    </form>
+        <span id="serverAddress1" class="white" value="ws://X.X.X.X:2603">
+        <span id="serverAddress2" class="white" value="ws://X.X.X.X:2604">
     <br>
     <table>
         <tr>
@@ -122,8 +118,6 @@
 <br>
 <br>
 <br>
-<span id="logoutput">
-</span>
 <span id="table">
 </span>
 <br>
@@ -131,64 +125,63 @@
 
 <script> 
 
+if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
+
 // global variables
-        g_statusButton= document.getElementById("statusbutton");
-        g_targetSelect=document.getElementById("targetSelect");
-        g_targetForm=document.getElementById("targetForm");
-        g_serverAddress=document.getElementById("serverAddress");
-        g_commitInfo=document.getElementById("commitInfo");
-        g_commitButton=document.getElementById("commitButton");
 
-        g_firstCell=null;       // first corner of the area the user wants to change
-        g_activeColor="red";    // color selected in the legend
+g_statusButton= document.getElementById("statusbutton");
+g_targetSelect=document.getElementById("targetSelect");
+g_targetForm=document.getElementById("targetForm");
+g_serverAddress1=document.getElementById("serverAddress1");
+g_serverAddress2=document.getElementById("serverAddress2");
+g_commitInfo=document.getElementById("commitInfo");
+g_commitButton=document.getElementById("commitButton");
 
-        g_cells = new Array(96);    // stores a pointer to all the td in the schedule
-        for (var i = 0; i < 24*4; i++) {
-         g_cells[i] = new Array(7);
-        }
+g_firstCell=null;       // first corner of the area the user wants to change
+g_activeColor="red";    // color selected in the legend
 
-        g_colors = new Array(96);    // stores the colors until the second point of the area is clicked
-        for (var i = 0; i < 24*4; i++) {
-         g_colors[i] = new Array(7);
-        }
+g_cells = new Array(96);    // stores a pointer to all the td in the schedule
+for (var i = 0; i < 24*4; i++) {
+ g_cells[i] = new Array(7);
+}
 
-        g_initialcolors = new Array(96); // stores the colors on table load to know how many cells have changed
-        for (var i = 0; i < 24*4; i++) {
-         g_initialcolors[i] = new Array(7);
-        }
+g_colors = new Array(96);    // stores the colors until the second point of the area is clicked
+for (var i = 0; i < 24*4; i++) {
+ g_colors[i] = new Array(7);
+}
 
-        var g_dayToRow = {};
+g_initialcolors = new Array(96); // stores the colors on table load to know how many cells have changed
+for (var i = 0; i < 24*4; i++) {
+ g_initialcolors[i] = new Array(7);
+}
+
+var g_dayToRow = {};
 
 
-            // figure out ip address or host name of the RGPIO server to construct WebSocket server URL
-
-        g_ws = null;
-        g_serverAddress.value = "ws://192.168.0.3:6789";
-
-        function wsconnect() {
+        function wsconnect(e_serverAddress) {
 
                 if ("WebSocket" in window)
                 {
-                    var serverAddress = g_serverAddress.value;
-                    g_ws = new WebSocket(serverAddress);
+                    var serverAddress=e_serverAddress.value;
+                    var ws = new WebSocket(serverAddress);
 
-                    g_ws.onopen = function ()
+                    ws.onopen = function ()
                     {
-                        g_serverAddress.className = "green";
+                        e_serverAddress.className = "green";
                         onWSConnected();  // are all functions already loaded now??
                     };
 
-                    g_ws.onclose = function (evt)
+                    ws.onclose = function (evt)
                     {
-                        g_serverAddress.className = "red";
+                        e_serverAddress.className = "red";
                     };
 
-                    g_ws.onerror = function ()
+                    ws.onerror = function ()
                     {
-                        g_serverAddress.className = "red";
+                        e_serverAddress.className = "red";
                     };
 
-                    g_ws.onmessage = function (event)
+                    ws.onmessage = function (event)
                     {
                         try {
                                     var msg = JSON.parse(event.data);
@@ -226,11 +219,43 @@
                         }
                            
                    }
+
+                   return ws;
             }
          }
 
+g_ws=null;
 
-wsconnect();
+function change_target(){
+ console.log("target ="+targetSelect.value);
+ if (g_targetSelect.value=="heating") g_ws=g_ws1;
+ if (g_targetSelect.value=="boiler")  g_ws=g_ws2;
+ load_schedule();
+};
+
+
+
+function onWSConnected() {
+ if (( g_serverAddress1.className == "green") && (g_serverAddress2.className == "green")) {
+  constructTable();
+  create_g_cells();
+  change_target();
+ }
+}
+
+
+function load_schedule(){
+        updateStatus();
+        g_ws.send("GETSCHEDULE");
+};
+
+
+g_ws1=null;
+g_ws2=null;
+g_serverAddress1.value = "ws://192.168.0.3:6789";
+g_serverAddress2.value = "ws://192.168.0.3:6790";
+g_ws1=wsconnect(g_serverAddress1);
+g_ws2=wsconnect(g_serverAddress2);
 
 
 function setStatusColor(color){
@@ -245,14 +270,6 @@ function updateStatus(){
 }
 
 g_statusButton.onclick="updateStatus()";
-
-function change_target(){
- console.log("target ="+targetSelect.value);
- if (g_targetSelect.value == "heating") { g_port=6789; };
- if (g_targetSelect.value == "boiler") { g_port=6790; };
-// load_schedule();
- console.log("server port = "+g_port);
-};
 
 
 
@@ -379,18 +396,6 @@ function setActiveColor(colorName) {
 g_activeColor=colorName;
 };
 
-function onWSConnected() {
-  g_port=6789;
-  constructTable();
-  create_g_cells();
-  load_schedule();
-}
-
-
-function load_schedule(){
-        updateStatus();
-        g_ws.send("GETSCHEDULE");
-};
 
 function create_g_cells(){
   // create a 2D array with the table cells.
@@ -428,16 +433,11 @@ g_commitButton.onclick= function(){
           g_ws.send("NS:"+day+':'+td.innerHTML+":"+td.className);
       }
   }
-  g_ws.send("NS:APPLY");
+  g_ws.send("NSDONE");
 
- create_g_cells();  // just to reset g_initialcolors
+ create_g_cells();  // to reset g_initialcolors
 
- setTimeout(        // allow the server some time to process the new schedule
-   function commitEffect() {
-      //updateStatus();
-      g_commitInfo.innerHTML="no changes since last commit";
-   },
-   3000);
+ g_commitInfo.innerHTML="no changes since last commit";
 
 }
 
@@ -472,7 +472,6 @@ for (k = 0; k < days.length; k++) {
         for (h = 0; h < 24; h++) {
          for (q = 0; q < quarters.length; q++) {
            var td2 = document.createElement('td');
-    //    <td id="0:0" class="blue" onmousedown="doDown(this)"  onmouseenter="doEnter(this)" >0:00</td>
            td2.id=id+":"+i;
            id++;
            td2.innerHTML=h+":"+quarters[q];

@@ -78,7 +78,7 @@ public class ServerEngine implements WSServerListener {
 
     public ArrayList<String> onClientRequest(String clientID, String request) {
 
-        System.out.println("calling onClientRequest cmd=" + request);
+        SterreborneServer.message(portNumber,1,"Client request : " + request);
         ArrayList<String> reply = new ArrayList<>();
 
         boolean invalidMessage = false;
@@ -90,26 +90,15 @@ public class ServerEngine implements WSServerListener {
                 reply = JSONStatus();
             } else if (tokens[0].equals("GETSCHEDULE")) {  // Get Schedule
                 reply = JSONSchedule();
+            } else if (tokens[0].equals("NSDONE")) {  // New Schedule complete
+                saveSchedule();
+                restart();
             } else {
                 invalidMessage = true;
             }
-
-
-        } else if (tokens.length == 2) {
-
-            if (tokens[0].equals("NS")) {
-                if (tokens[1].equals("APPLY")) {
-                    saveSchedule();
-                    restart();
-                } else {
-                    invalidMessage = true;
-                }
-            } else {
-                invalidMessage = true;
-            }
-
 
         } else if (tokens.length == 5) {
+
             if (tokens[0].equals("NS")) {
                 String day = tokens[1];
                 int hour = Integer.parseInt(tokens[2]);
@@ -120,6 +109,10 @@ public class ServerEngine implements WSServerListener {
                     if (tableData[0][col].dayName().equals(day)) {
                         int row = hour * 4 + (minute / 15);
                         TimeValue tv = tableData[row][col];
+                        if (tv==null) {
+                            // happens when there is no data e.g. when the schedule file was deleted
+                            tv=new TimeValue();
+                        }
 //System.out.println("OS " + day + ":" + tv.hour() + ":" + tv.minute() + "=" + tv.color() + "  row=" + row + " col=" + col);
 //System.out.println("NS " + day + ":" + hour + ":" + minute + "=" + color + "  row=" + row + " col=" + col);
                         tv.on = (color.equals("red") || color.equals("darkred"));
