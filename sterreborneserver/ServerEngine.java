@@ -11,18 +11,16 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class ServerEngine implements WSServerListener {
 
     public int portNumber;
-    public int output;
+    public int outputPin;
 
     public boolean STATE = false;
-    public boolean expired = false;
     public WSServer webSocketServer;
 
-    // expired=true  means that the current time is after the dates in the schedule
-    // and the one time events are no longer to be executed.
     int columnCount = 7;
     int rowCount = 24 * 4;
     TimeValue[][] tableData = new TimeValue[rowCount][columnCount];
@@ -30,30 +28,216 @@ public class ServerEngine implements WSServerListener {
     String scheduleFileName;
 
     ArrayList<String> weekdays = new ArrayList<>();
-    ServerEngineThread serverEngineThread = new ServerEngineThread(this);
+    ServerEngineThread serverEngineThread = new ServerEngineThread();
 
-    {
-        weekdays.add("MONDAY");  // will all be overwritten when schedule is restored
-        weekdays.add("TUESDAY");
-        weekdays.add("WEDNESDAY");
-        weekdays.add("THURSDAY");
-        weekdays.add("FRIDAY");
-        weekdays.add("SATURDAY");
-        weekdays.add("SUNDAY");
 
-        for (int col = 0; col < columnCount; col++) {
-            for (int row = 0; row < rowCount; row++) {
-                tableData[row][col] = null;
+    class ServerEngineThread extends Thread {
+
+        private boolean stop = false;
+        private boolean fastforward = false;
+
+        public ServerEngineThread() {
+            super("ServerEngineThread");
+        }
+
+        public void run() {
+            if (true) {
+                while (true) {
+                    stop = false;
+                    startScheduling();
+                }
             }
         }
+
+
+        public void restart() {
+            SterreborneServer.message(portNumber, 1, "serverEngineThread is asked to restart");
+            stop = true;
+            // startScheduling() will now terminate and will be called again in run()
+        }
+
+        private void stoppableSleep(int seconds) {
+
+            for (int s = 1; s <= seconds; s++) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+
+                }
+                if (stop) {
+                    SterreborneServer.message(portNumber, 1, "sleep is interrupted");
+                    return;
+                }
+            }
+        }
+
+
+        private void changeState(boolean newState, TimeValue tnow, boolean showMessage) {
+            if (newState) {
+                STATE = SterreborneServer.rgpioInterface.switchOn(outputPin);
+            } else {
+                STATE = SterreborneServer.rgpioInterface.switchOff(outputPin);
+            }
+
+            JSONStatusToAll();
+
+            if (showMessage) {
+                SterreborneServer.message(portNumber, 1, printState(tnow) + "  <-----------");
+            }
+        }
+
+        private String printState(TimeValue tnow) {
+            String s = "STATE=";
+            if (STATE) {
+                s = s + "ON";
+            } else {
+                s = s + "OFF";
+            }
+            return s;
+        }
+
+        private void startScheduling() {
+            SterreborneServer.message(portNumber, 1, "Restart scheduling");
+
+            TimeValue tnow;
+            TimeValue tprev;
+            TimeValue tnext;
+
+            boolean currentState, nextState;
+            boolean firstIteration = true;
+
+            if (!scheduleHasData()) {
+                SterreborneServer.message(portNumber, 1, "Schedule has no data. Waiting...");
+                stoppableSleep(60);
+            } else {
+
+            /* PSEUDO CODE,DO NOT REMOVE
+             while (true)
+             {
+             t=now;
+             STATUS := tprev.on
+             sleep(tnext-t)
+             STATUS := tnext.on
+             sleep(5 min)
+             }
+             */
+
+                tnow = new TimeValue(); //compiler needs initialization
+
+                SterreborneServer.message(portNumber, 1, printState(tnow) + "  <----------- Pin STATE");
+
+                while (!stop) {
+
+                /* if fastforward, sleeps are replaced by increasing the time of tnow
+                 and tnow is not syncronized with the real time after every loop
+                 */
+                    if (fastforward) {  // not too fast!
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ie) {
+                        }
+                    }
+
+                    if (!fastforward) {
+                        tnow = new TimeValue();   // synchronize
+                    }
+
+                    tprev = previousEvent(tnow.dayName(), tnow.hour(), tnow.minute());
+                    tnext = nextEvent(tnow.dayName(), tnow.hour(), tnow.minute());
+
+                    SterreborneServer.message(portNumber, 2, tprev.dateName() + " < " + tnow.dateName() + "  < " + tnext.dateName());
+
+                    /* tprev is always on the same day as tnow */
+                    currentState = getState(tprev);
+                    SterreborneServer.message(portNumber, 2, "current state according to schedule (tprev)  = " + currentState);
+
+                    if (stop) {
+                        return;
+                    }
+
+                    changeState(currentState, tnow, firstIteration);
+
+                    nextState = getState(tnext);
+                    SterreborneServer.message(portNumber, 2, "next state according to schedule (tnext) = " + nextState);
+                    int secondsToNextEvent = tnext.isSecondsLaterThan(tnow);
+                    if (secondsToNextEvent < 0) {
+                        // we are in the last timeslot of the day, tnext is next day
+                        secondsToNextEvent = 24 * 3600 - (tnow.hour() * 3600 + tnow.minute() * 60);
+                    }
+                    SterreborneServer.message(portNumber, 2, "seconds to next event = " + secondsToNextEvent);
+                    SterreborneServer.message(portNumber, 2, "Sleeping " + secondsToNextEvent);
+
+                    if (!fastforward) {
+                        stoppableSleep(secondsToNextEvent);
+                    }
+                    // roll time forward instead of creating a new tnow
+                    tnow.add(TimeValue.SECOND, secondsToNextEvent);
+
+                    if (stop) {
+                        return;
+                    }
+
+                    changeState(nextState, tnow, true);
+
+                    SterreborneServer.message(portNumber, 2, "Sleeping " + 5 * 60);
+
+                    if (!fastforward) {
+                        stoppableSleep(5 * 60);
+                    }
+                    tnow.add(TimeValue.SECOND, 5 * 60);
+                    firstIteration = false;
+
+                }
+            }
+
+        }
+
+        private boolean getState(TimeValue tschedule) {
+            // get the state of the event in tschedule on the date of today.
+            // it is assumed that tschedule and today are the same weekday.
+/*
+            if (expired) {
+                if (tschedule.once) {
+                    return !tschedule.on;
+                } else {
+                    return tschedule.on;
+                }
+            } else { // not expired
+            */
+                return tschedule.on;
+        }
+
     }
 
-    public ServerEngine(int portNumber, int output) {
-        this.portNumber = portNumber;
-        this.output = output;
-        SterreborneServer.rgpioInterface.initOutputPin(output);
-        scheduleFileName = "/home/pi/Scheduler/Schedule" + portNumber + ".txt";
 
+
+
+    public ServerEngine(int portNumber, int outputPin) {
+        this.portNumber = portNumber;
+        this.outputPin = outputPin;
+        SterreborneServer.rgpioInterface.initOutputPin(outputPin);
+        scheduleFileName = "/home/pi/Scheduler/Schedule" + portNumber + ".txt";
+        {
+            for (int col = 0; col < columnCount; col++) {
+                String dayName="";
+                for (int h= 0; h < 24; h++) {
+                    for (int q = 0; q < 4; q++) {
+                        TimeValue tv = new TimeValue();
+                        tv.set(Calendar.MINUTE, q*15);
+                        tv.set(Calendar.HOUR_OF_DAY, h);
+                        tv.set(Calendar.DAY_OF_WEEK,col+1); // col is 0-6, day of week is 1-7
+                        dayName=tv.dayName();
+                        tv.on=false;
+                        tv.once=false;
+                        tableData[h * 4 + q][col] = tv;
+                        //System.out.println("col="+col+" row="+(h*4+q)+"  "+ tv.asString());
+
+                    }
+                }
+                //System.out.println("column "+col+" is "+dayName);
+                weekdays.add(dayName);
+            }
+        }
         this.STATE = false;  // sure ??
         restoreSchedule();
 
@@ -163,15 +347,6 @@ public class ServerEngine implements WSServerListener {
         return reply;
     }
 
-    public ArrayList<String> JSONStatus() {
-        ArrayList<String> reply = new ArrayList<>();
-        if (STATE) {
-            reply.add("{\"messageID\":\"STATUS\", \"status\":\"ON\"}");
-        } else {
-            reply.add("{\"messageID\":\"STATUS\", \"status\":\"OFF\"}");
-        }
-        return reply;
-    }
 
     public void JSONStatusToAll() {
         SterreborneServer.message(portNumber,1,"Sending state update (STATE="+STATE+")");
@@ -278,27 +453,5 @@ public class ServerEngine implements WSServerListener {
         return tableData[row][col];
     }
 
-    public void expireOnDate(TimeValue tnow) {
 
-        if (!expired) {
-            if (!tnow.isSameDateAs(tableData[0][dayToColumn(tnow.dayName())])) {
-                expired = true;
-                SterreborneServer.message(portNumber,1, "expire on date ");
-            }
-        }
-    }
-
-    public void expireOnEndOfSchedule(TimeValue tnow) {
-
-        if (!expired) {
-            // check if tnow is in the last time slot of the schedule
-            int row = tnow.hour() * 4 + tnow.minute() / 15;
-            int col = dayToColumn(tnow.dayName());
-
-            if ((row == (rowCount - 1)) && (col == (columnCount - 1))) {
-                expired = true;
-                SterreborneServer.message(portNumber,1, "expire on end of schedule ");
-            }
-        }
-    }
 }

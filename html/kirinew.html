@@ -8,6 +8,7 @@
 
 <body>
 <style>
+  // styles for the STATUS text
   p,span,form {font-family:Arial, sans-serif;font-size:14px;}
   span.userinfo { font-style: italic; color: black; }
   span.redstatus {font-weight: 900;color: rgb(255,0,0); background-color: white}
@@ -75,7 +76,6 @@ span.red {background-color:red}
             <td>
                 <form id="statusform">
                     <button type="button" id="statusbutton" class="unknownbutton">STATUS ?</button>
-                    <span id="statusinfo" class="userinfo"></span>
                 </form>
             </td>
         </tr>
@@ -101,7 +101,7 @@ span.red {background-color:red}
 
     <form>
         <button type="button" id="commitButton">COMMIT</button>
-        <span id="commitInfo" class="userinfo"> ( no changes since schedule loaded )</span>
+        <span id="commitInfo" class="userinfo"></span>
     </form>
     <br>
     <br>
@@ -164,6 +164,9 @@ var g_dayToRow = {};
                 {
                     var serverAddress=e_serverAddress.value;
                     var ws = new WebSocket(serverAddress);
+console.log("WEBSOCKET URL ="+ws.url);
+var port=6789;
+if (ws.url.match(":"+port)!==null) console.log(" matches "+port);
 
                     ws.onopen = function ()
                     {
@@ -186,16 +189,24 @@ var g_dayToRow = {};
                         try {
                                     var msg = JSON.parse(event.data);
                             } catch (e) {
-                                    console.log("JSON.parse failed on : " + event.data);
-
+//                                    console.log("JSON.parse failed on : " + event.data);
                             }
                         if (typeof msg !== "undefined") {
 
                           if (msg.messageID === "STATUS") {
-                           g_statusButton.innerHTML="STATUS : "+msg.status; 
-                           if (msg.status==="ON")  setStatusColor("redbutton");
-                           if (msg.status==="OFF") setStatusColor("bluebutton");
-
+console.log(event.data);
+                           // The server informs the client that the status has changed.
+                           // The message also contains the port number of the originating WS server
+                           // Only apply the new status if the port corresponds to the current target
+                           // The status of the other target will be requested when the user switches target
+                           if ((msg.status==="ON")&&( g_ws.url.match(":"+msg.port)!==null)) {
+                            setStatusColor("redbutton");
+                            g_statusButton.innerHTML="STATUS : ON";
+                           }
+                           if ((msg.status==="OFF")&&( g_ws.url.match(":"+msg.port)!==null)) {
+                            setStatusColor("bluebutton");
+                            g_statusButton.innerHTML="STATUS : OFF";
+                           }
 
                           } else if (msg.messageID === "CS") {    // current schedule
 
@@ -226,14 +237,6 @@ var g_dayToRow = {};
 
 g_ws=null;
 
-function change_target(){
- console.log("target ="+targetSelect.value);
- if (g_targetSelect.value=="heating") g_ws=g_ws1;
- if (g_targetSelect.value=="boiler")  g_ws=g_ws2;
- load_schedule();
-};
-
-
 
 function onWSConnected() {
  if (( g_serverAddress1.className == "green") && (g_serverAddress2.className == "green")) {
@@ -244,9 +247,18 @@ function onWSConnected() {
 }
 
 
+function change_target(){
+ console.log("target ="+targetSelect.value);
+ if (g_targetSelect.value=="heating") g_ws=g_ws1;
+ if (g_targetSelect.value=="boiler")  g_ws=g_ws2;
+ load_schedule();
+ g_commitInfo.innerHTML="";
+};
+
+
 function load_schedule(){
-        updateStatus();
-        g_ws.send("GETSCHEDULE");
+ updateStatus();
+ g_ws.send("GETSCHEDULE");
 };
 
 
@@ -335,7 +347,10 @@ if (g_firstCell==null) { // first corner was clicked
           if (g_cells[x][y].className != g_initialcolors[x][y]){changedcells++};
       }
   }
-  g_commitInfo.innerHTML=" ( "+changedcells+" cells changed )";
+  if (changedcells>0)
+   g_commitInfo.innerHTML=" ( "+changedcells+" cells changed )";
+  else
+   g_commitInfo.innerHTML="";
 
 g_firstCell=null;
 }
@@ -437,18 +452,14 @@ g_commitButton.onclick= function(){
 
  create_g_cells();  // to reset g_initialcolors
 
- g_commitInfo.innerHTML="no changes since last commit";
+ g_commitInfo.innerHTML="";
 
 }
 
 
 function constructTable(){
-var d = new Date();
-var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
-var k; 
-for (k = 0; k < days.length; k++) {
- console.log("today+"+k+" is "+ days[(d.getDay()+k)%7]);
-}
+    var d = new Date();
+    var days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
     var table = document.createElement('table');
     table.id="schedule";
     table.className="tg";
@@ -486,7 +497,6 @@ for (k = 0; k < days.length; k++) {
     }
     document.getElementById("table").appendChild(table);
   var tablebody = table.getElementsByTagName('TBODY');
-console.log('table body = '+tablebody.length);
 }
 
 
