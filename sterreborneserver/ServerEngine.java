@@ -148,7 +148,7 @@ public class ServerEngine implements WSServerListener {
                     SterreborneServer.message(portNumber, 2, tprev.dateName() + " < " + tnow.dateName() + "  < " + tnext.dateName());
 
                     /* tprev is always on the same day as tnow */
-                    currentState = getState(tprev);
+                    currentState = tprev.on;
                     SterreborneServer.message(portNumber, 2, "current state according to schedule (tprev)  = " + currentState);
 
                     if (stop) {
@@ -157,7 +157,7 @@ public class ServerEngine implements WSServerListener {
 
                     changeState(currentState, tnow, firstIteration);
 
-                    nextState = getState(tnext);
+                    nextState = tnext.on;
                     SterreborneServer.message(portNumber, 2, "next state according to schedule (tnext) = " + nextState);
                     int secondsToNextEvent = tnext.isSecondsLaterThan(tnow);
                     if (secondsToNextEvent < 0) {
@@ -184,6 +184,17 @@ public class ServerEngine implements WSServerListener {
                     if (!fastforward) {
                         stoppableSleep(5 * 60);
                     }
+
+                    // we are now in the middle of the next time slot.
+                    if (tprev.once) {
+                        System.out.println(" tprev once = true");
+                        System.out.println(tprev.asString());
+                        tprev.once = false;
+                        tprev.on = !tprev.on;
+                        JSONTimeValueToAll(tprev);
+                        saveSchedule();
+                    }
+
                     tnow.add(TimeValue.SECOND, 5 * 60);
                     firstIteration = false;
 
@@ -191,22 +202,6 @@ public class ServerEngine implements WSServerListener {
             }
 
         }
-
-        private boolean getState(TimeValue tschedule) {
-            // get the state of the event in tschedule on the date of today.
-            // it is assumed that tschedule and today are the same weekday.
-/*
-            if (expired) {
-                if (tschedule.once) {
-                    return !tschedule.on;
-                } else {
-                    return tschedule.on;
-                }
-            } else { // not expired
-            */
-                return tschedule.on;
-        }
-
     }
 
 
@@ -263,7 +258,6 @@ public class ServerEngine implements WSServerListener {
     public ArrayList<String> onClientRequest(String clientID, String request) {
 
         SterreborneServer.message(portNumber,1,"Client request : " + request);
-        ArrayList<String> reply = new ArrayList<>();
 
         boolean invalidMessage = false;
         String[] tokens = request.split(":");
@@ -273,7 +267,7 @@ public class ServerEngine implements WSServerListener {
             if (tokens[0].equals("GETSTATUS")) {
                 JSONStatusToAll();  // does not generate a reply
             } else if (tokens[0].equals("GETSCHEDULE")) {  // Get Schedule
-                reply = JSONSchedule();
+                JSONScheduleToAll();
             } else if (tokens[0].equals("NSDONE")) {  // New Schedule complete
                 saveSchedule();
                 restart();
@@ -312,7 +306,7 @@ public class ServerEngine implements WSServerListener {
 
         if (invalidMessage) SterreborneServer.message(portNumber,1, "invalid message: <" + request + ">");
 
-        return reply;
+        return null;
     }
 
 
@@ -357,23 +351,31 @@ public class ServerEngine implements WSServerListener {
         }
     }
 
+    public void JSONTimeValueToAll(TimeValue tv) {
+        webSocketServer.sendToAll("{" +
+                "\"messageID\":\"CS\", " +
+                "\"day\":\"" + tv.dayName() + "\"," +
+                "\"hour\":\"" + tv.hour() + "\"," +
+                "\"minute\":\"" + tv.minute() + "\"," +
+                "\"color\":\"" + tv.color() + "\"," +
+                "\"port\":\"" + portNumber + "\"" +
+                "}");
+    }
 
-    public ArrayList<String> JSONSchedule() {
-        ArrayList<String> reply = new ArrayList<>();
+    public void  JSONScheduleToAll() {
 
-        // if tableData has no values (first start of pi) return an empty list
+        // if tableData has no values (first start of pi) send nothing to the client
         if (tableData[0][0] == null) {
             SterreborneServer.message(portNumber,1, "No data to send");
-            return reply;
+            return;
         } else {
             for (int col = 0; col < columnCount; col++) {
                 for (int row = 0; row < rowCount; row++) {
-                    reply.add(tableData[row][col].asJSONString());
+                    JSONTimeValueToAll(tableData[row][col]);
                 }
             }
-            reply.add("{\"messageID\":\"CSDONE\"}");
+        webSocketServer.sendToAll( "{\"messageID\":\"CSDONE\"}");
         }
-        return reply;
     }
 
     public ArrayList<String> saveSchedule() {

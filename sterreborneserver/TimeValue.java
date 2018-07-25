@@ -51,10 +51,6 @@ public class TimeValue extends GregorianCalendar {
         return days[get(Calendar.DAY_OF_WEEK) - 1];
     }
 
-    public String dayShortName() {
-        return dayName().substring(0, 3);
-    }
-
     public Integer hour() {
         return get(Calendar.HOUR_OF_DAY);
     }
@@ -73,15 +69,6 @@ public class TimeValue extends GregorianCalendar {
                 + this.hour() + ":" + this.minute() + ":" + this.second();
     }
 
-    public String timeValueName() {
-        return this.dateName() + " " + this.on + " " + this.once;
-    }
-
-    public boolean isSameDateAs(TimeValue t) {
-        return (this.year().intValue() == t.year().intValue())
-                && (this.month().intValue() == t.month().intValue())
-                && (this.day().intValue() == t.day().intValue());
-    }
 
     public int isSecondsLaterThan(TimeValue t) {
         return (hour() * 3600 + minute() * 60 + second())
@@ -108,15 +95,7 @@ public class TimeValue extends GregorianCalendar {
         return "?";
     }
 
-    public String asJSONString() {
-      return "{"+
-              "\"messageID\":\"CS\", " +
-              "\"day\":\""+dayName()+"\","+
-              "\"hour\":\""+hour()+"\","+
-              "\"minute\":\""+minute()+"\","+
-              "\"color\":\""+color()+"\""+
-              "}";
-    }
+
 
     static public TimeValue stringToTimeValue(String s) {
         String[] tokens = s.split(" ");

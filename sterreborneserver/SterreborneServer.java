@@ -16,7 +16,7 @@ public class SterreborneServer {
 
     public static void main(String[] args) {
 
-        verbosity = 1;
+        verbosity = 2;
         controlActive = true;
         TimeValue now = new TimeValue();
         System.out.println("Scheduler starts at " + now.dateName());
