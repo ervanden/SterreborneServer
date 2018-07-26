@@ -164,10 +164,6 @@ var g_dayToRow = {};
                 {
                     var serverAddress=e_serverAddress.value;
                     var ws = new WebSocket(serverAddress);
-console.log("WEBSOCKET URL ="+ws.url);
-var port=6789;
-if (ws.url.match(":"+port)!==null) console.log(" matches "+port);
-
                     ws.onopen = function ()
                     {
                         e_serverAddress.className = "green";
@@ -192,9 +188,9 @@ if (ws.url.match(":"+port)!==null) console.log(" matches "+port);
 //                                    console.log("JSON.parse failed on : " + event.data);
                             }
                         if (typeof msg !== "undefined") {
+//console.log(event.data);
 
                           if (msg.messageID === "STATUS") {
-console.log(event.data);
                            // The server informs the client that the status has changed.
                            // The message also contains the port number of the originating WS server
                            // Only apply the new status if the port corresponds to the current target
@@ -224,7 +220,7 @@ console.log(event.data);
 
                           } else if (msg.messageID === "CSDONE") {    // current schedule complete
 
-                           create_g_cells(); // to reset initial colors
+                           storeInitialColors();
 
                           }
                         }
@@ -235,20 +231,19 @@ console.log(event.data);
             }
          }
 
+
+constructTable();
+
+
 g_ws=null;
-
-
 function onWSConnected() {
  if (( g_serverAddress1.className == "green") && (g_serverAddress2.className == "green")) {
-  constructTable();
-  create_g_cells();
   change_target();
  }
 }
 
 
 function change_target(){
- console.log("target ="+targetSelect.value);
  if (g_targetSelect.value=="heating") g_ws=g_ws1;
  if (g_targetSelect.value=="boiler")  g_ws=g_ws2;
  load_schedule();
@@ -264,8 +259,8 @@ function load_schedule(){
 
 g_ws1=null;
 g_ws2=null;
-g_serverAddress1.value = "ws://192.168.0.3:6789";
-g_serverAddress2.value = "ws://192.168.0.3:6790";
+g_serverAddress1.value = "ws://192.168.0.2:6789";
+g_serverAddress2.value = "ws://192.168.0.2:6790";
 g_ws1=wsconnect(g_serverAddress1);
 g_ws2=wsconnect(g_serverAddress2);
 
@@ -292,31 +287,15 @@ document.addEventListener('keydown', function(event) {
 }});
 
 
-function doDown(element) {  // called when schedule cell is clicked
-if (g_firstCell==null) { // first corner was clicked
-  g_firstCell=element;
+function paintSelection(cell1,cell2){
 
-//console.log("first cell = "+element.innerHTML);
-//console.log("saving current cell colors");
-
-  var x;
-  var y;
-  for (y = 0; y < 7;  y++) {
-      for (x = 0; x < 24*4; x++) {
-          g_colors[x][y]=g_cells[x][y].className;
-      }
-  }
-
-} else {  // second corner cell was clicked
-
-//console.log("second cell = "+element.innerHTML);
   //convert first and second corner to x,y coordinates
   
-  var xy=g_firstCell.id;
+  var xy=cell1.id;
   var axy=xy.split(":");
   var x1=Number(axy[0]);
   var y1=Number(axy[1]);
-  var xy=element.id;
+  var xy=cell2.id;
   var axy=xy.split(":");
   var x2=Number(axy[0]);
   var y2=Number(axy[1]);
@@ -325,25 +304,39 @@ if (g_firstCell==null) { // first corner was clicked
   var ymin=Math.min(y1,y2);
   var ymax=Math.max(y1,y2);
 
-//console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
-
+  //console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
   // set all cells in this area to the selected color
 
-  var x;
-  var y;
-  for (y = 0; y < 7;  y++) {
-      for (x = 0; x < 24*4; x++) {
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
           if ((x>=xmin) && (x<=xmax) && (y>=ymin) && (y<=ymax)) {
              g_cells[x][y].className=g_activeColor;
+          } else {
+             g_cells[x][y].className=g_colors[x][y];
           }
       }
   }
 
+}
+
+function doDown(element) {  // called when schedule cell is clicked
+if (g_firstCell==null) { // first corner was clicked
+  g_firstCell=element;
+
+//console.log("first cell = "+element.innerHTML);
+//console.log("saving current cell colors");
+
+  storeColors()
+
+} else {  // second corner cell was clicked
+
+  paintSelection(g_firstCell,element);
+
   // compare to the initial colors and count the number of cells that changed
 
   var changedcells=0;
-  for (y = 0; y < 7;  y++) {
-      for (x = 0; x < 24*4; x++) {
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
           if (g_cells[x][y].className != g_initialcolors[x][y]){changedcells++};
       }
   }
@@ -354,82 +347,50 @@ if (g_firstCell==null) { // first corner was clicked
 
 g_firstCell=null;
 }
-};
+}
+
 
 function doEnter(element) {  // called when mouse moves into a schedule cell
 if (g_firstCell!=null) { // hovering into a cell after first corner was clicked
+  paintSelection(g_firstCell,element);
+}
+}
 
-  restoreColors();
-
-  // find coordinates of the area
-
-  var xy=g_firstCell.id;
-  var axy=xy.split(":");
-  var x1=Number(axy[0]);
-  var y1=Number(axy[1]);
-  var xy=element.id;
-  var axy=xy.split(":");
-  var x2=Number(axy[0]);
-  var y2=Number(axy[1]);
-  var xmin=Math.min(x1,x2);
-  var xmax=Math.max(x1,x2);
-  var ymin=Math.min(y1,y2);
-  var ymax=Math.max(y1,y2);
-  
-  //console.log("area ("+xmin+","+ymin+") ("+xmax+","+ymax+")");
-
-  // set all cells in the area to the selected color
-
-  var x;
-  var y;
-  for (y = 0; y < 7;  y++) {
-      for (x = 0; x < 24*4; x++) {
-          if ((x>=xmin) && (x<=xmax) && (y>=ymin) && (y<=ymax)) {
-             g_cells[x][y].className=g_activeColor;
-          }
+function storeColors(){
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
+          g_colors[x][y]=g_cells[x][y].className;
       }
   }
-  
-
 }
-};
-
 function restoreColors(){
-  //console.log("restoring table colors");
-
-  var x;
-  var y;
-  for (y = 0; y < 7;  y++) {
-      for (x = 0; x < 24*4; x++) {
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
           g_cells[x][y].className=g_colors[x][y];
       }
   }
+}
 
-};
+function storeInitialColors(){
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
+          g_initialcolors[x][y]=g_cells[x][y].className;
+      }
+  }
+}
+function restoreInitialColors(){
+  for (var y = 0; y < 7;  y++) {
+      for (var x = 0; x < 24*4; x++) {
+          g_cells[x][y].className=g_initialcolors[x][y];
+      }
+  }
+}
+
 
 function setActiveColor(colorName) {
 g_activeColor=colorName;
 };
 
-
-function create_g_cells(){
-  // create a 2D array with the table cells.
-  // This to avoid navigating the DOM each time to perform an action on all the cells
-
-  var table=document.getElementById("schedule");
-  var tablebody = table.getElementsByTagName('TBODY')[0];
-  var tablerows=tablebody.getElementsByTagName('TR');
-  var y;
-  for (y = 0; y < tablerows.length; y++) {
-      var rowentries=tablerows[y].getElementsByTagName('TD');
-      var x;
-      for (x = 0; x < (rowentries.length-1); x++) {
-          var td=rowentries[x+1];
-          g_cells[x][y]=td;
-          g_initialcolors[x][y]=td.className;
-      }
-  }
-};
 
 
 g_commitButton.onclick= function(){
@@ -450,7 +411,7 @@ g_commitButton.onclick= function(){
   }
   g_ws.send("NSDONE");
 
- create_g_cells();  // to reset g_initialcolors
+ storeInitialColors();
 
  g_commitInfo.innerHTML="";
 
@@ -483,13 +444,14 @@ function constructTable(){
         for (h = 0; h < 24; h++) {
          for (q = 0; q < quarters.length; q++) {
            var td2 = document.createElement('td');
+           g_cells[id][i]=td2;
            td2.id=id+":"+i;
-           id++;
            td2.innerHTML=h+":"+quarters[q];
            td2.className="blue";
            td2.setAttribute("onmousedown","doDown(this)");
            td2.setAttribute("onmouseenter","doEnter(this)");
            tr.appendChild(td2);
+           id++;
          }
         }
     
