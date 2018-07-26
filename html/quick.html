@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sterreborne quick</title>
+</head>
+<body)>
+  <style>
+  p,span,form {font-family:Arial, sans-serif;font-size:14px;}
+  .fromDaySelect {padding:5px}
+  .fromHourSelect {padding:5px}
+  .fortext {padding:5px}
+  .forSelect {padding:5px}
+  </style>
+
+
+<br>
+<table>
+<tr>
+
+<td>
+<p class="fromtext">
+Switch ON from
+</p>
+</td>
+
+<td>
+<select class="fromDaySelect" id="fromDaySelect" onchange="changeFromDay()" >
+<option value="Today">Today</option>
+</select>
+</td>
+<td>
+<select class="fromHourSelect" id="fromHourSelect" onchange="changeFromHour()" >
+<option value="Now">Now</option>
+</select>
+</td>
+
+<td>
+<p class="fortext">
+for
+</p>
+</td>
+
+<td>
+<select class="forSelect"  id="forSelect" onchange="changeForHours()" >
+</select>
+</td>
+
+</tr>
+
+<tr>
+<td class="fromtext">
+<button class="fromtext" type="button" id="commitbutton" onclick="doCommit()">COMMIT</button>
+</td>
+</tr>
+</table>
+<br>
+
+
+
+<script> 
+
+if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
+
+        function wsconnect(serverAddress) {
+
+                if ("WebSocket" in window)
+                {
+                    var ws = new WebSocket(serverAddress);
+                    ws.onopen = function ()
+                    {
+                    };
+
+                    ws.onclose = function (evt)
+                    {
+                        alert(serverAddress+" closed");
+                    };
+
+                    ws.onerror = function ()
+                    {
+                        alert(serverAddress+" error");
+                    };
+
+                    ws.onmessage = function (event)
+                    {
+//console.log(event.data);
+                    }
+
+                   return ws;
+            }
+         }
+
+
+
+g_ws=wsconnect( "ws://192.168.0.2:6789");
+
+
+g_fromDaySelect = document.getElementById('fromDaySelect');
+g_fromHourSelect = document.getElementById('fromHourSelect');
+g_forSelect = document.getElementById('forSelect');
+g_weekDays = {
+"SUNDAY" : 0,
+"MONDAY" : 1,
+"TUESDAY" : 2,
+"WEDNESDAY" : 3,
+"THURSDAY" : 4,
+"FRIDAY" : 5,
+"SATURDAY" : 6
+}
+
+now=new Date();
+
+for (var i = 1; i<7; i++){
+    var opt = document.createElement('option');
+    var day=(now.getDay()+i)%7;
+    opt.innerHTML = weekDay(day);
+    g_fromDaySelect.appendChild(opt);
+}
+
+for (var i = 1; i<=23; i++){
+    var hr=now.getHours()+i;
+    var opt = document.createElement('option');
+    opt.innerHTML = hr%24+":00";
+    g_fromHourSelect.appendChild(opt);
+}
+
+for (var i = 1; i<=12; i++){
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.innerHTML = opt.value +" hours";
+    forSelect.appendChild(opt);
+}
+
+function changeFromDay(){
+}
+function changeFromHour(){
+}
+function changeForHours(){
+}
+
+function doCommit(){
+
+var fromDay=g_fromDaySelect.value;   
+var fromHour=g_fromHourSelect.value;
+var forHours=g_forSelect.value;
+
+// fromHour from string to number
+if (fromHour==="Now") 
+ fromHour=now.getHours();
+else {
+ var a=fromHour.split(":");
+ fromHour=Number(a[0]);
+}
+
+// fromDay from string to number
+if (fromDay==="Today") 
+ fromDay=now.getDay();
+else
+ fromDay=g_weekDays[fromDay];
+
+
+fromHour=Number(fromHour);
+forHours=Number(forHours);
+console.log("from : "+weekDay(fromDay)+" " +fromHour+" for : "+forHours+"  "+(fromHour+forHours));
+for (var h=fromHour; h<(fromHour+forHours); h++) {
+ var onHour=h%24;
+ var onDay=fromDay%7;
+
+ console.log("on : "+weekDay(onDay)+" " +onHour);
+
+ g_ws.send("NS:"+weekDay(onDay)+":"+onHour+":"+"00"+":darkred");
+ g_ws.send("NS:"+weekDay(onDay)+":"+onHour+":"+"15"+":darkred");
+ g_ws.send("NS:"+weekDay(onDay)+":"+onHour+":"+"30"+":darkred");
+ g_ws.send("NS:"+weekDay(onDay)+":"+onHour+":"+"45"+":darkred");
+
+ if (h===23) {
+  fromDay=fromDay+1;
+ }
+}
+g_ws.send("NSDONE");
+g_ws.send("GETSCHEDULE");
+
+}
+
+
+function weekDay(dayOfWeek){
+ for (var dayName in g_weekDays){
+//   console.log(dayName+" "+g_weekDays[dayName]);
+   if (g_weekDays[dayName]===dayOfWeek) return dayName;
+ }
+}
+
+/*
+function weekDay(dayOfWeek){
+if (dayOfWeek==0) return "SUNDAY";
+if (dayOfWeek==1) return "MONDAY";
+if (dayOfWeek==2) return "TUESDAY";
+if (dayOfWeek==3) return "WEDNESDAY";
+if (dayOfWeek==4) return "THURSDAY";
+if (dayOfWeek==5) return "FRIDAY";
+if (dayOfWeek==6) return "SATURDAY";
+}
+*/
+
+</script>
+
+
+</body>
+</html>
