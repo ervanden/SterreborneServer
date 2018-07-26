@@ -3,7 +3,6 @@ package sterreborneserver;
 public class SterreborneServer {
 
     static int verbosity;
-    static boolean controlActive;
     public static RGPIOInterface rgpioInterface;
 
 
@@ -16,12 +15,10 @@ public class SterreborneServer {
 
     public static void main(String[] args) {
 
-        verbosity = 2;
-        controlActive = true;
+        verbosity = 1;
         TimeValue now = new TimeValue();
         System.out.println("Scheduler starts at " + now.dateName());
         System.out.println("verbosity=" + verbosity);
-        System.out.println("controlActive=" + controlActive);
         System.out.println();
 
         rgpioInterface = new RGPIOInterface();
