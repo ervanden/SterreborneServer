@@ -4,17 +4,27 @@
   <meta charset="utf-8">
   <title>Sterreborne quick</title>
 </head>
+
 <body)>
   <style>
-  p,span,form {font-family:Arial, sans-serif;font-size:14px;}
-  .fromDaySelect {padding:5px}
+  * {font-family:Arial, sans-serif; font-size:14px;}
+  .redStatus {font-weight: 900;color: rgb(255,0,0); background-color: white; border:none}
+  .blueStatus {font-weight: 900;color: rgb(0,0,255); background-color: white; border:none}
+  .unknownStatus {font-weight: 900;color: lightgrey; background-color: white; border:none}
   .fromHourSelect {padding:5px}
+  .fromDaySelect {padding:5px}
   .fortext {padding:5px}
   .forSelect {padding:5px}
   </style>
 
 
 <br>
+<div> 
+<span id="statusText" class="unknownStatus">
+  Status: unknown
+</span>
+</div> 
+
 <table>
 <tr>
 
@@ -57,8 +67,11 @@ for
 <br>
 
 
-
 <script> 
+
+g_statusText=document.getElementById("statusText");
+
+serverIPAddress=window.location.origin.replace(/.*\/\//,"").replace(/:[0-9]*/,"");
 
 if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
 
@@ -69,6 +82,7 @@ if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
                     var ws = new WebSocket(serverAddress);
                     ws.onopen = function ()
                     {
+                        ws.send("GETSTATUS");
                     };
 
                     ws.onclose = function (evt)
@@ -83,7 +97,30 @@ if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
 
                     ws.onmessage = function (event)
                     {
-//console.log(event.data);
+console.log(event.data);
+                        try {
+                                    var msg = JSON.parse(event.data);
+                            } catch (e) {
+//                                    console.log("JSON.parse failed on : " + event.data);
+                            }
+                        if (typeof msg !== "undefined") {
+
+                          if (msg.messageID === "STATUS") {
+                           // The server informs the client that the status has changed.
+                           // The message also contains the port number of the originating WS server
+                           // Only apply the new status if the port corresponds to the current target
+                           // The status of the other target will be requested when the user switches target
+                           if ((msg.status==="ON")&&( g_ws.url.match(":"+msg.port)!==null)) {
+                            g_statusText.innerHTML="STATUS : ON";
+                            g_statusText.className="redStatus";
+                           }
+                           if ((msg.status==="OFF")&&( g_ws.url.match(":"+msg.port)!==null)) {
+                            g_statusText.innerHTML="STATUS : OFF";
+                            g_statusText.className="blueStatus";
+                           }
+                          }
+                        }
+
                     }
 
                    return ws;
@@ -92,7 +129,7 @@ if (!("WebSocket" in window)) alert("Web Sockets not supported... ");
 
 
 
-g_ws=wsconnect( "ws://192.168.0.2:6789");
+g_ws=wsconnect( "ws://"+serverIPAddress+":6789");
 
 
 g_fromDaySelect = document.getElementById('fromDaySelect');
@@ -178,7 +215,7 @@ for (var h=fromHour; h<(fromHour+forHours); h++) {
  }
 }
 g_ws.send("NSDONE");
-g_ws.send("GETSCHEDULE");
+g_ws.send("GETSCHEDULE"); // update all clients
 
 }
 

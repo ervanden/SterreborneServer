@@ -11,8 +11,6 @@
   // styles for the STATUS text
   p,span,form {font-family:Arial, sans-serif;font-size:14px;}
   span.userinfo { font-style: italic; color: black; }
-  span.redstatus {font-weight: 900;color: rgb(255,0,0); background-color: white}
-  span.bluestatus {font-weight: 900;color: rgb(0,0,255);}
 
   button.redbutton {font-weight: 900;color: rgb(255,0,0); background-color: white; border:none}
   button.bluebutton {font-weight: 900;color: rgb(0,0,255); background-color: white; border:none}
@@ -43,8 +41,9 @@
 .legend  {border-collapse:collapse;border-spacing:0;}
 .legend   td{font-family:Arial, sans-serif;font-size:14px;padding:5px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
 .legend   .white{vertical-align:top; border-style:none; padding-right:30px}
+.legend   .whiteHighlighted{ text-decoration: underline; vertical-align:top; border-style:none; padding-right:30px}
 .legend   .blue{background-color:#33fcff;vertical-align:top;     width:30px}
-.legend   .darkblue{background-color:#0004ff;vertical-align:top; width:30px}
+.legend   .darkblue{background-color:#0004ff;vertca-align:top; width:30px}
 .legend   .red{background-color:#ffccc9;vertical-align:top;      width:30px}
 .legend   .darkred{background-color:#ff0000;vertical-align:top;  width:30px}
 
@@ -56,7 +55,6 @@ span.white {background-color:white}
 span.green {background-color:green}
 span.red {background-color:red}
 </style>
-
 
 <div class="fixed">
     <br>
@@ -84,13 +82,13 @@ span.red {background-color:red}
         <tr>
             <td class="white" style="padding-left:0px;padding-right:30px">SELECT A COLOR :</td>
             <td class="red" onmousedown='setActiveColor("red")'></td>
-            <td class="white" onmousedown='setActiveColor("red")'> ON, every week</td>
+            <td class="white" id="activeColorOn" onmousedown='setActiveColor("red")'> ON, every week</td>
             <td class="blue" onmousedown='setActiveColor("blue")'></td>
-            <td class="white" onmousedown='setActiveColor("blue")'> OFF, every week</td>
+            <td class="white"  id="activeColorOff" onmousedown='setActiveColor("blue")'> OFF, every week</td>
             <td class="darkred" onmousedown='setActiveColor("darkred")'></td>
-            <td class="white" onmousedown='setActiveColor("darkred")'> ON, once</td>
+            <td class="white"  id="activeColorOnOnce" onmousedown='setActiveColor("darkred")'> ON, once</td>
             <td class="darkblue" onmousedown='setActiveColor("darkblue")'></td>
-            <td class="white" onmousedown='setActiveColor("darkblue")'> OFF, once</td>
+            <td class="white"  id="activeColorOffOnce" onmousedown='setActiveColor("darkblue")'> OFF, once</td>
         </tr>
         </tbody>
     </table>
@@ -131,9 +129,15 @@ g_targetSelect=document.getElementById("targetSelect");
 g_targetForm=document.getElementById("targetForm");
 g_commitInfo=document.getElementById("commitInfo");
 g_commitButton=document.getElementById("commitButton");
+// legend text (is highlighted if that color is selecte)
+g_activeColorOn= document.getElementById("activeColorOn");
+g_activeColorOff= document.getElementById("activeColorOff");
+g_activeColorOnOnce= document.getElementById("activeColorOnOnce");
+g_activeColorOffOnce= document.getElementById("activeColorOffOnce");
 
 g_firstCell=null;       // first corner of the area the user wants to change
 g_activeColor="red";    // color selected in the legend
+setActiveColor("red");  // highlight it
 
 g_cells = new Array(96);    // stores a pointer to all the td in the schedule
 for (var i = 0; i < 24*4; i++) {
@@ -258,9 +262,9 @@ function load_schedule(){
  g_ws.send("GETSCHEDULE");
 };
 
-
-g_ws1=wsconnect( "ws://192.168.0.2:6789", "ws1");
-g_ws2=wsconnect( "ws://192.168.0.2:6790", "ws2");
+serverIPAddress=window.location.origin.replace(/.*\/\//,"").replace(/:[0-9]*/,"");
+g_ws1=wsconnect( "ws://"+serverIPAddress+":6789","ws1");
+g_ws2=wsconnect( "ws://"+serverIPAddress+":6790","ws2");
 
 
 function setStatusColor(color){
@@ -386,7 +390,15 @@ function restoreInitialColors(){
 
 
 function setActiveColor(colorName) {
+g_activeColorOn.className="white";
+g_activeColorOff.className="white";
+g_activeColorOnOnce.className="white";
+g_activeColorOffOnce.className="white";
 g_activeColor=colorName;
+if (colorName=="red")      g_activeColorOn.className="whiteHighlighted";
+if (colorName=="darkred")  g_activeColorOnOnce.className="whiteHighlighted";
+if (colorName=="blue")     g_activeColorOff.className="whiteHighlighted";
+if (colorName=="darkblue") g_activeColorOffOnce.className="whiteHighlighted";
 };
 
 
@@ -464,4 +476,3 @@ function constructTable(){
 
 </body>
 </html>
-
